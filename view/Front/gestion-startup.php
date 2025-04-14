@@ -2,235 +2,14 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+require_once '../../config.php';
 require_once '../../Controller/startupC.php';
+
 $controller = new StartupController();
 $startups = $controller->getAllStartups();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Startup - Gestion des Startups</title>
-    // ...existing head content...
-</head>
-
-<body>
-    <!-- Topbar Start -->
-    // ...existing topbar code...
-
-    <!-- Navbar Start -->
-    <div class="container-fluid position-relative p-0">
-        <nav class="navbar navbar-expand-lg navbar-dark px-5 py-3 py-lg-0" style="background-color: #06A3DA;">
-            // ...existing navbar code...
-            <div class="dropdown-menu m-0">
-                <a href="dashboard.html" class="dropdown-item">Dashboard</a>
-                <a href="#" class="dropdown-item">Gestion utilisateurs</a>
-                <a href="#" class="dropdown-item">Gestion profiles</a>
-                <a href="gestion-startup.php" class="dropdown-item">Gestion Startup</a>
-                <a href="#" class="dropdown-item">Gestion evénements</a>
-                <a href="gestionInvestissement.html" class="dropdown-item">Gestion des investissements</a>
-                <a href="#" class="dropdown-item">Gestion documents</a>
-            </div>
-            // ...existing navbar code...
-        </nav>
-    </div>
-
-    <!-- Main Content -->
-    <div class="container py-5" style="margin-top: 100px !important;">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3">
-                <div class="sidebar">
-                    <h4>Catégories</h4>
-                    <ul>
-                        <li><a href="#" data-category="technologie">Technologie</a></li>
-                        <li><a href="#" data-category="santé">Santé</a></li>
-                        <li><a href="#" data-category="éducation">Éducation</a></li>
-                        <li><a href="#" data-category="finance">Finance</a></li>
-                        <li><a href="#" data-category="e-commerce">E-commerce</a></li>
-                        <li><a href="#" data-category="autres">Autres</a></li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Main Content -->
-            <div class="col-md-9">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h1>Liste des Startups</h1>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStartupModal">
-                            Ajouter Startup
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Search Bar and Filter -->
-                <div class="row search-bar mt-3">
-                    <div class="col-md-9">
-                        <input type="text" class="form-control" placeholder="Rechercher une startup...">
-                    </div>
-                    <div class="col-md-3 text-end">
-                        <button class="btn btn-secondary filter-btn">Filtrer</button>
-                    </div>
-                </div>
-
-                <!-- Gallery of Startups -->
-                <div class="row mt-4">
-                    <?php if ($startups && count($startups) > 0): ?>
-                        <?php foreach ($startups as $startup): ?>
-                            <div class="col-md-4 mb-4">
-                                <div class="card">
-                                    <img src="img/startup-default.jpg" class="card-img-top" alt="<?php echo htmlspecialchars($startup['name']); ?>">
-                                    <div class="card-body">
-                                        <h5 class="card-title"><?php echo htmlspecialchars($startup['name']); ?></h5>
-                                        <p class="card-text"><?php echo htmlspecialchars(substr($startup['description'], 0, 100)) . '...'; ?></p>
-                                        <span class="badge bg-primary mb-2"><?php echo htmlspecialchars($startup['category_name']); ?></span>
-                                        <div class="mt-2">
-                                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#startupModal<?php echo $startup['id']; ?>">
-                                                Voir plus
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Modal for each startup -->
-                                <div class="modal fade" id="startupModal<?php echo $startup['id']; ?>" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title"><?php echo htmlspecialchars($startup['name']); ?></h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <img src="img/startup-default.jpg" class="img-fluid mb-3" alt="<?php echo htmlspecialchars($startup['name']); ?>">
-                                                <h6>Catégorie: <?php echo htmlspecialchars($startup['category_name']); ?></h6>
-                                                <p><?php echo htmlspecialchars($startup['description']); ?></p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="col-12 text-center">
-                            <p>Aucune startup n'a été trouvée.</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="lib/wow/wow.min.js"></script>
-    <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-    <script src="lib/counterup/counterup.min.js"></script>
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
-
-    <!-- Template Javascript -->
-    <script src="js/main.js"></script>
-    <script src="js/startup.js"></script>
-</body>
-</html>
-<?php
-require_once __DIR__ . '/../config.php'; // Inclure la configuration de la base de données
-
-class Startup {
-    private $db;
-
-    public function __construct() {
-        $this->db = Config::GetConnexion(); // Connexion à la base de données
-    }
-
-    // Lire toutes les startups avec leurs catégories
-    public function getAllStartups() {
-        try {
-            $sql = "SELECT s.*, c.name as category_name 
-                    FROM startup s 
-                    LEFT JOIN category c ON s.category_id = c.id";
-            $query = $this->db->prepare($sql);
-            $query->execute();
-            return $query->fetchAll();
-        } catch (Exception $e) {
-            error_log("Error in getAllStartups: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    // Ajouter une startup avec vérification
-    public function addStartup($name, $description, $categoryId) {
-        try {
-            $sql = "INSERT INTO startup (name, description, category_id) 
-                    VALUES (:name, :description, :category_id)";
-            $query = $this->db->prepare($sql);
-            return $query->execute([
-                'name' => $name,
-                'description' => $description,
-                'category_id' => $categoryId
-            ]);
-        } catch (Exception $e) {
-            die('Error:' . $e->getMessage());
-        }
-    }
-
-    // Récupérer une startup par ID
-    public function getStartupById($id) {
-        $sql = "SELECT * FROM startup WHERE id = :id";
-        $query = $this->db->prepare($sql);
-        $query->execute(['id' => $id]);
-        return $query->fetch();
-    }
-
-    // Mettre à jour une startup
-    public function updateStartup($id, $name, $description, $categoryId) {
-        $sql = "UPDATE startup SET name = :name, description = :description, category_id = :category_id WHERE id = :id";
-        $query = $this->db->prepare($sql);
-        $query->execute([
-            'id' => $id,
-            'name' => $name,
-            'description' => $description,
-            'category_id' => $categoryId
-        ]);
-    }
-
-    // Supprimer une startup
-    public function deleteStartup($id) {
-        $sql = "DELETE FROM startup WHERE id = :id";
-        $query = $this->db->prepare($sql);
-        $query->execute(['id' => $id]);
-    }
-}
-
-// Traitement du formulaire d'ajout de startup
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
-    $name = $_POST['name'];
-    $description = $_POST['description'];
-    $categoryId = $_POST['category_id'];
-
-    $startup = new Startup();
-    if ($startup->addStartup($name, $description, $categoryId)) {
-        $success_message = "Startup ajoutée avec succès !";
-    } else {
-        $error_message = "Erreur lors de l'ajout de la startup.";
-    }
-}
-
-// Récupérer toutes les startups pour l'affichage
-$startupObj = new Startup();
-$startups = $startupObj->getAllStartups();
-?>
-
-<!DOCTYPE html>
-<html lang="en">
-
 <head>
     <meta charset="utf-8">
     <title>Startup - Gestion des Startups</title>
@@ -331,8 +110,7 @@ $startups = $startupObj->getAllStartups();
                 </div>
             </div>
             <div class="col-lg-4 text-center text-lg-end">
-                <div class="d-inline-flex align-items-center" style="height: 45px;">
-                </div>
+                <div class="d-inline-flex align-items-center" style="height: 45px;"></div>
             </div>
         </div>
     </div>
@@ -356,7 +134,7 @@ $startups = $startupObj->getAllStartups();
                             <a href="dashboard.html" class="dropdown-item">Dashboard</a>
                             <a href="#" class="dropdown-item">Gestion utilisateurs</a>
                             <a href="#" class="dropdown-item">Gestion profiles</a>
-                            <a href="gestion-startup.html" class="dropdown-item">Gestion Startup</a>
+                            <a href="gestion-startup.php" class="dropdown-item">Gestion Startup</a>
                             <a href="#" class="dropdown-item">Gestion evénements</a>
                             <a href="gestionInvestissement.html" class="dropdown-item">Gestion des investissements</a>
                             <a href="#" class="dropdown-item">Gestion documents</a>
@@ -371,20 +149,6 @@ $startups = $startupObj->getAllStartups();
 
     <!-- Main Content -->
     <div class="container py-5" style="margin-top: 100px !important;">
-        <?php if(isset($success_message)): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?php echo $success_message; ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <?php endif; ?>
-        
-        <?php if(isset($error_message)): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?php echo $error_message; ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <?php endif; ?>
-        
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3">
@@ -404,11 +168,8 @@ $startups = $startupObj->getAllStartups();
             <!-- Main Content -->
             <div class="col-md-9">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <h1>Liste des Startups</h1>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStartupModal">Ajouter Startup</button>
                     </div>
                 </div>
 
@@ -426,7 +187,7 @@ $startups = $startupObj->getAllStartups();
                 <div class="row mt-4" id="startupGallery">
                     <?php if(empty($startups)): ?>
                         <div class="col-12 text-center">
-                            <p>Aucune startup trouvée. Ajoutez-en une nouvelle !</p>
+                            <p>Aucune startup trouvée.</p>
                         </div>
                     <?php else: ?>
                         <?php foreach($startups as $startup): ?>
@@ -449,46 +210,6 @@ $startups = $startupObj->getAllStartups();
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Main Content End -->
-
-    <!-- Add Startup Modal -->
-    <div class="modal fade" id="addStartupModal" tabindex="-1" aria-labelledby="addStartupModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addStartupModalLabel">Ajouter une Startup</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="POST" action="">
-                        <input type="hidden" name="action" value="add">
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Nom de la Startup</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Entrez le nom de la startup" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Entrez une description" required></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="category_id" class="form-label">Catégorie</label>
-                            <select class="form-select" id="category_id" name="category_id" required>
-                                <option value="1">Technologie</option>
-                                <option value="2">Santé</option>
-                                <option value="3">Éducation</option>
-                                <option value="4">Finance</option>
-                                <option value="5">E-commerce</option>
-                            </select>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                            <button type="submit" class="btn btn-primary">Ajouter</button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>

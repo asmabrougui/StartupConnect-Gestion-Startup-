@@ -11,7 +11,7 @@ class StartupController {
         $this->model = new StartupModel();
     }
 
-    // Ajouter une startup
+    // Ajouter une startups
     public function addStartup($name, $description, $categoryId) {
         $this->model->addStartup($name, $description, $categoryId);
     }
