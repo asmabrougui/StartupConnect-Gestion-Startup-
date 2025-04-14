@@ -1,43 +1,46 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/../Model/startup.php';
 
 class StartupController {
-    private $startupModel;
+    private $model;
 
     public function __construct() {
-        $this->startupModel = new Startup();
+        $this->model = new StartupModel();
     }
 
     // Ajouter une startup
     public function addStartup($name, $description, $categoryId) {
-        $this->startupModel->addStartup($name, $description, $categoryId);
+        $this->model->addStartup($name, $description, $categoryId);
     }
 
     // Afficher toutes les startups
     public function getAllStartups() {
-        $startups = $this->startupModel->getAllStartups();
-        // Débogage
-        if (empty($startups)) {
-            error_log("Aucune startup trouvée");
-        } else {
-            error_log("Nombre de startups trouvées : " . count($startups));
+        try {
+            $startups = $this->model->getAllStartups();
+            error_log("Startups récupérées : " . print_r($startups, true));
+            return $startups;
+        } catch (Exception $e) {
+            error_log("Erreur dans getAllStartups: " . $e->getMessage());
+            return [];
         }
-        return $startups;
     }
 
     // Modifier une startup
     public function updateStartup($id, $name, $description, $categoryId) {
-        $this->startupModel->updateStartup($id, $name, $description, $categoryId);
+        $this->model->updateStartup($id, $name, $description, $categoryId);
     }
 
     // Supprimer une startup
     public function deleteStartup($id) {
-        $this->startupModel->deleteStartup($id);
+        $this->model->deleteStartup($id);
     }
 
     // Récupérer une startup par ID
     public function getStartupById($id) {
-        return $this->startupModel->getStartupById($id);
+        return $this->model->getStartupById($id);
     }
 
     // Handle form submissions
