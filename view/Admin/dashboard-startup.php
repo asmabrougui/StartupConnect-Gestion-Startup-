@@ -387,6 +387,14 @@ unset($_SESSION['error_message']);
         .toast-error {
             border-left: 4px solid var(--danger);
         }
+
+        .startup-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid #eef0f5;
+        }
     </style>
 </head>
 
@@ -466,9 +474,10 @@ unset($_SESSION['error_message']);
                     <thead>
                         <tr>
                             <th width="5%">ID</th>
-                            <th width="20%">Nom</th>
-                            <th width="45%">Description</th>
-                            <th width="15%">Catégorie</th>
+                            <th width="15%">Image</th>
+                            <th width="15%">Nom</th>
+                            <th width="40%">Description</th>
+                            <th width="10%">Catégorie</th>
                             <th width="15%">Actions</th>
                         </tr>
                     </thead>
@@ -477,6 +486,20 @@ unset($_SESSION['error_message']);
                             <?php foreach ($startups as $startup): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($startup['id']); ?></td>
+                                    <td>
+                                        <?php 
+                                            $defaultImage = '/startupConnect-website/uploads/defaults/default-startup.png';
+                                            if (!empty($startup['image_path']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $startup['image_path'])) {
+                                                $imagePath = $startup['image_path'];
+                                            } else {
+                                                $imagePath = $defaultImage;
+                                            }
+                                        ?>
+                                        <img src="<?php echo htmlspecialchars($imagePath); ?>" 
+                                             alt="<?php echo htmlspecialchars($startup['name']); ?>" 
+                                             class="startup-image"
+                                             onerror="this.onerror=null; this.src='<?php echo $defaultImage; ?>';">
+                                    </td>
                                     <td><?php echo htmlspecialchars($startup['name']); ?></td>
                                     <td><?php echo htmlspecialchars($startup['description']); ?></td>
                                     <td>
@@ -496,7 +519,7 @@ unset($_SESSION['error_message']);
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="5" class="text-center">Aucune startup trouvée</td>
+                                <td colspan="6" class="text-center">Aucune startup trouvée</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -520,7 +543,7 @@ unset($_SESSION['error_message']);
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form action="../../Controller/startupC.php" method="POST" id="addStartupForm">
+                    <form action="../../Controller/startupC.php" method="POST" id="addStartupForm" enctype="multipart/form-data">
                         <div class="mb-4">
                             <label for="name" class="form-label">Nom de la Startup</label>
                             <input type="text" class="form-control" id="name" name="name" placeholder="Entrez le nom de la startup" required>
@@ -539,6 +562,11 @@ unset($_SESSION['error_message']);
                                 <option value="4">Finance</option>
                                 <option value="5">E-commerce</option>
                             </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="image" class="form-label">Image de la Startup</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+                            <small class="text-muted">Format accepté: JPG, PNG. Taille max: 5MB</small>
                         </div>
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
@@ -561,7 +589,7 @@ unset($_SESSION['error_message']);
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form action="../../Controller/startupC.php" method="POST" id="editStartupForm">
+                    <form action="../../Controller/startupC.php" method="POST" id="editStartupForm" enctype="multipart/form-data">
                         <input type="hidden" id="edit_startup_id" name="startup_id">
                         <div class="mb-4">
                             <label for="edit_name" class="form-label">Nom de la Startup</label>
@@ -580,6 +608,12 @@ unset($_SESSION['error_message']);
                                 <option value="4">Finance</option>
                                 <option value="5">E-commerce</option>
                             </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="edit_image" class="form-label">Image de la Startup</label>
+                            <input type="file" class="form-control" id="edit_image" name="image" accept="image/*">
+                            <small class="text-muted">Laissez vide pour conserver l'image existante</small>
+                            <div id="current_image_preview" class="mt-2"></div>
                         </div>
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
@@ -774,6 +808,32 @@ unset($_SESSION['error_message']);
             document.querySelector('#errorToast .toast-body').textContent = <?php echo json_encode($_SESSION['error_message']); ?>;
             errorToast.show();
         <?php endif; ?>
+
+        // Add image preview functionality with error handling
+        document.getElementById('image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.createElement('img');
+                    preview.src = e.target.result;
+                    preview.style.maxWidth = '200px';
+                    preview.style.marginTop = '10px';
+                    preview.className = 'startup-image';
+                    preview.onerror = function() {
+                        this.onerror = null;
+                        this.src = '/startupConnect-website/uploads/defaults/default-startup.png';
+                    };
+                    const container = document.getElementById('image').parentNode;
+                    const oldPreview = container.querySelector('img');
+                    if (oldPreview) {
+                        container.removeChild(oldPreview);
+                    }
+                    container.appendChild(preview);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
     </script>
 </body>
 </html>

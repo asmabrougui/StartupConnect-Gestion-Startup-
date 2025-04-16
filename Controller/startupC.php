@@ -12,8 +12,8 @@ class StartupController {
     }
 
     // Ajouter une startups
-    public function addStartup($name, $description, $categoryId) {
-        $this->model->addStartup($name, $description, $categoryId);
+    public function addStartup($name, $description, $categoryId, $image = null) {
+        $this->model->addStartup($name, $description, $categoryId, $image);
     }
 
     // Afficher toutes les startups
@@ -44,13 +44,13 @@ class StartupController {
     }
 
     // Modifier une startup
-    public function updateStartup($id, $name, $description, $categoryId) {
+    public function updateStartup($id, $name, $description, $categoryId, $image = null) {
         try {
             if (!$id) {
                 throw new Exception("ID de startup non valide");
             }
 
-            $success = $this->model->updateStartup($id, $name, $description, $categoryId);
+            $success = $this->model->updateStartup($id, $name, $description, $categoryId, $image);
             if (!$success) {
                 throw new Exception("Échec de la mise à jour de la startup");
             }
@@ -93,6 +93,49 @@ class StartupController {
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log("POST request received: " . print_r($_POST, true));
 
+                // Handle file upload
+                $uploadedFile = null;
+                if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                    $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/startupConnect-website/uploads/';
+                    if (!file_exists($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+
+                    // Create defaults directory if it doesn't exist
+                    $defaultsDir = $uploadDir . 'defaults/';
+                    if (!file_exists($defaultsDir)) {
+                        mkdir($defaultsDir, 0777, true);
+                    }
+
+                    // Copy default image if it doesn't exist
+                    $defaultImage = $defaultsDir . 'default-startup.png';
+                    if (!file_exists($defaultImage)) {
+                        // You can either copy a default image here or create one
+                        copy(__DIR__ . '/../assets/default-startup.png', $defaultImage);
+                    }
+
+                    $fileInfo = pathinfo($_FILES['image']['name']);
+                    $extension = strtolower($fileInfo['extension']);
+                    
+                    // Validate file type
+                    if (!in_array($extension, ['jpg', 'jpeg', 'png'])) {
+                        throw new Exception("Format de fichier non autorisé. Utilisez JPG ou PNG.");
+                    }
+                    
+                    // Generate unique filename
+                    $filename = uniqid() . '.' . $extension;
+                    $uploadPath = $uploadDir . $filename;
+                    
+                    if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
+                        // Store relative path in database
+                        $uploadedFile = '/startupConnect-website/uploads/' . $filename;
+                        error_log("File uploaded successfully to: " . $uploadPath);
+                        error_log("Stored path in database: " . $uploadedFile);
+                    } else {
+                        throw new Exception("Erreur lors du téléchargement de l'image.");
+                    }
+                }
+
                 // Handle delete operation
                 if (isset($_POST['delete_startup']) && isset($_POST['startup_id'])) {
                     error_log("Delete startup request received for ID: " . $_POST['startup_id']);
@@ -115,7 +158,8 @@ class StartupController {
                     $result = $this->model->addStartup(
                         trim($_POST['name']),
                         trim($_POST['description']),
-                        $_POST['category_id']
+                        $_POST['category_id'],
+                        $uploadedFile
                     );
 
                     if ($result) {
@@ -140,7 +184,8 @@ class StartupController {
                         $_POST['startup_id'],
                         trim($_POST['name']),
                         trim($_POST['description']),
-                        $_POST['category_id']
+                        $_POST['category_id'],
+                        $uploadedFile
                     );
 
                     if ($result) {

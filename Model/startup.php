@@ -31,12 +31,13 @@ class StartupModel {
     }
 
     // Ajouter une startup avec vérification
-    public function addStartup($name, $description, $categoryId) {
+    public function addStartup($name, $description, $categoryId, $imagePath = null) {
         try {
             error_log("Starting addStartup with parameters: " . print_r([
                 'name' => $name,
                 'description' => $description,
-                'category_id' => $categoryId
+                'category_id' => $categoryId,
+                'image_path' => $imagePath
             ], true));
 
             // Validate inputs
@@ -45,8 +46,8 @@ class StartupModel {
                 return false;
             }
 
-            $sql = "INSERT INTO startup (name, description, category_id) 
-                    VALUES (:name, :description, :category_id)";
+            $sql = "INSERT INTO startup (name, description, category_id, image_path) 
+                    VALUES (:name, :description, :category_id, :image_path)";
             $query = $this->db->prepare($sql);
             
             error_log("Executing SQL: " . $sql);
@@ -54,7 +55,8 @@ class StartupModel {
             $params = [
                 'name' => $name,
                 'description' => $description,
-                'category_id' => $categoryId
+                'category_id' => $categoryId,
+                'image_path' => $imagePath
             ];
             
             $result = $query->execute($params);
@@ -84,13 +86,14 @@ class StartupModel {
     }
 
     // Mettre à jour une startup
-    public function updateStartup($id, $name, $description, $categoryId) {
+    public function updateStartup($id, $name, $description, $categoryId, $imagePath = null) {
         try {
             error_log("Starting updateStartup with parameters: " . print_r([
                 'id' => $id,
                 'name' => $name,
                 'description' => $description,
-                'category_id' => $categoryId
+                'category_id' => $categoryId,
+                'image_path' => $imagePath
             ], true));
 
             if (empty($id) || empty($name) || empty($description) || empty($categoryId)) {
@@ -99,17 +102,25 @@ class StartupModel {
             }
 
             $sql = "UPDATE startup SET name = :name, description = :description, 
-                    category_id = :category_id WHERE id = :id";
-            $query = $this->db->prepare($sql);
-            
-            error_log("Executing update SQL: " . $sql);
-            
-            $result = $query->execute([
+                    category_id = :category_id";
+            $params = [
                 'id' => $id,
                 'name' => $name,
                 'description' => $description,
                 'category_id' => $categoryId
-            ]);
+            ];
+            
+            if ($imagePath !== null) {
+                $sql .= ", image_path = :image_path";
+                $params['image_path'] = $imagePath;
+            }
+            
+            $sql .= " WHERE id = :id";
+            $query = $this->db->prepare($sql);
+            
+            error_log("Executing update SQL: " . $sql);
+            
+            $result = $query->execute($params);
 
             if (!$result) {
                 error_log("Database error during update: " . print_r($query->errorInfo(), true));

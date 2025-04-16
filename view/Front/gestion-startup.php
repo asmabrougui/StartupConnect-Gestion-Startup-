@@ -104,6 +104,15 @@ unset($_SESSION['error_message']);
         .alert {
             margin-top: 20px;
         }
+        
+        /* Added styles for startup images */
+        .startup-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 5px 5px 0 0;
+            border-bottom: 1px solid #eef0f5;
+        }
     </style>
 </head>
 
@@ -216,7 +225,19 @@ unset($_SESSION['error_message']);
                         <?php foreach($startups as $startup): ?>
                             <div class="col-md-4 mb-4 startup-card" data-category="<?php echo $startup['category_id']; ?>">
                                 <div class="card">
-                                    <img src="img/startup-placeholder.jpg" class="card-img-top" alt="<?php echo htmlspecialchars($startup['name']); ?>">
+                                    <?php 
+                                        // Handle image path
+                                        $defaultImage = '/startupConnect-website/uploads/defaults/default-startup.png';
+                                        if (!empty($startup['image_path']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $startup['image_path'])) {
+                                            $imagePath = $startup['image_path'];
+                                        } else {
+                                            $imagePath = $defaultImage;
+                                        }
+                                    ?>
+                                    <img src="<?php echo htmlspecialchars($imagePath); ?>" 
+                                         class="startup-image" 
+                                         alt="<?php echo htmlspecialchars($startup['name']); ?>"
+                                         onerror="this.onerror=null; this.src='<?php echo $defaultImage; ?>';">
                                     <div class="card-body">
                                         <h5 class="card-title"><?php echo htmlspecialchars($startup['name']); ?></h5>
                                         <p class="card-text"><?php echo htmlspecialchars(substr($startup['description'], 0, 100)) . '...'; ?></p>
@@ -251,6 +272,50 @@ unset($_SESSION['error_message']);
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Startup Modal -->
+    <div class="modal fade" id="editStartupModal" tabindex="-1" aria-labelledby="editStartupModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editStartupModalLabel">Modifier la Startup</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="../../Controller/startupC.php" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" id="editStartupId" name="startup_id">
+                        <div class="mb-3">
+                            <label for="editName" class="form-label">Nom</label>
+                            <input type="text" class="form-control" id="editName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editDescription" name="description" rows="4" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCategory" class="form-label">Catégorie</label>
+                            <select class="form-select" id="editCategory" name="category_id" required>
+                                <option value="1">Technologie</option>
+                                <option value="2">Santé</option>
+                                <option value="3">Éducation</option>
+                                <option value="4">Finance</option>
+                                <option value="5">E-commerce</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editImage" class="form-label">Image</label>
+                            <input type="file" class="form-control" id="editImage" name="image" accept="image/*">
+                            <small class="text-muted">Laissez vide pour conserver l'image actuelle</small>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" name="update_startup" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -296,7 +361,23 @@ unset($_SESSION['error_message']);
                 e.preventDefault();
                 var startupId = $(this).data("id");
                 // Here you would typically load the startup details via AJAX
-                $("#viewStartupContent").html("<p>Chargement des détails pour la startup ID: " + startupId + "...</p>");
+                // For now, we'll just populate with some basic info from the card
+                var card = $(this).closest('.card');
+                var title = card.find('.card-title').text();
+                var desc = $(this).closest('.startup-card').find('.card-text').text();
+                var category = $(this).closest('.startup-card').find('.badge').text();
+                var image = $(this).closest('.startup-card').find('img').attr('src');
+                
+                var content = `
+                    <div class="text-center mb-3">
+                        <img src="${image}" alt="${title}" style="max-width: 100%; max-height: 300px; object-fit: contain;">
+                    </div>
+                    <h4>${title}</h4>
+                    <p><strong>Catégorie:</strong> <span class="badge bg-info">${category}</span></p>
+                    <p>${desc}</p>
+                `;
+                
+                $("#viewStartupContent").html(content);
                 $("#viewStartupModal").modal("show");
             });
 
@@ -313,15 +394,6 @@ unset($_SESSION['error_message']);
                 $("#editDescription").val(description);
                 $("#editCategory").val(category);
                 $("#editStartupModal").modal("show");
-            });
-
-            // Delete startup
-            $(".delete-startup").click(function(e) {
-                e.preventDefault();
-                var startupId = $(this).data("id");
-                if (confirm("Êtes-vous sûr de vouloir supprimer cette startup ?")) {
-                    window.location.href = "delete-startup.php?id=" + startupId;
-                }
             });
         });
     </script>
