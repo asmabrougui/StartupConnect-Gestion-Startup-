@@ -251,10 +251,6 @@ unset($_SESSION['error_message']);
                                         <p class="badge bg-info"><?php echo htmlspecialchars($startup['category_name']); ?></p>
                                         <div class="d-flex justify-content-between mt-3">
                                             <a href="#" class="btn btn-primary btn-sm view-startup" data-id="<?php echo $startup['id']; ?>">Voir plus</a>
-                                            <a href="#" class="btn btn-warning btn-sm edit-startup" data-id="<?php echo $startup['id']; ?>" 
-                                                data-name="<?php echo htmlspecialchars($startup['name']); ?>"
-                                                data-description="<?php echo htmlspecialchars($startup['description']); ?>"
-                                                data-category="<?php echo $startup['category_id']; ?>">Modifier</a>
                                         </div>
                                     </div>
                                 </div>
@@ -399,21 +395,6 @@ unset($_SESSION['error_message']);
                 
                 $("#viewStartupContent").html(content);
                 $("#viewStartupModal").modal("show");
-            });
-
-            // Edit startup
-            $(".edit-startup").click(function(e) {
-                e.preventDefault();
-                var startupId = $(this).data("id");
-                var name = $(this).data("name");
-                var description = $(this).data("description");
-                var category = $(this).data("category");
-                
-                $("#editStartupId").val(startupId);
-                $("#editName").val(name);
-                $("#editDescription").val(description);
-                $("#editCategory").val(category);
-                $("#editStartupModal").modal("show");
             });
         });
     </script>
