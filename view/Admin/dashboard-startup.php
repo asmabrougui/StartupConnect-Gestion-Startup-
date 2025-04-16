@@ -468,9 +468,17 @@ unset($_SESSION['error_message']);
             </div>
         </div>
         
+        <!-- Search Bar Start -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <input type="text" id="searchInput" class="form-control" placeholder="Rechercher une startup...">
+            </div>
+        </div>
+        <!-- Search Bar End -->
+
         <div class="table-container fade-in">
             <div class="table-responsive">
-                <table class="table">
+                <table class="table" id="startupTable">
                     <thead>
                         <tr>
                             <th width="5%">ID</th>
@@ -630,6 +638,8 @@ unset($_SESSION['error_message']);
     <!-- JavaScript Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Add deleteStartup function
         function deleteStartup(id) {
@@ -717,9 +727,69 @@ unset($_SESSION['error_message']);
             });
         });
 
-        // Form submission handler with logging
+        // Custom validation for "Nom de la Startup"
+        function validateStartupForm(form, isEdit = false) {
+            let nameInput = form.querySelector(isEdit ? '#edit_name' : '#name');
+            let descInput = form.querySelector(isEdit ? '#edit_description' : '#description');
+            let catInput = form.querySelector(isEdit ? '#edit_category_id' : '#category_id');
+            let name = nameInput.value.trim();
+            let desc = descInput.value.trim();
+            let cat = catInput.value;
+
+            // Check if name is empty or a number
+            if (!name || !isNaN(name)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur de validation',
+                    text: 'Le nom de la startup ne doit pas être vide ni un nombre.',
+                    confirmButtonColor: '#06A3DA'
+                });
+                nameInput.focus();
+                return false;
+            }
+            // Check if description is empty
+            if (!desc) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur de validation',
+                    text: 'Veuillez remplir la description.',
+                    confirmButtonColor: '#06A3DA'
+                });
+                descInput.focus();
+                return false;
+            }
+            // Check if category is selected
+            if (!cat) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur de validation',
+                    text: 'Veuillez sélectionner une catégorie.',
+                    confirmButtonColor: '#06A3DA'
+                });
+                catInput.focus();
+                return false;
+            }
+            // For add form, check if image is selected
+            if (!isEdit) {
+                let imgInput = form.querySelector('#image');
+                if (!imgInput.files.length) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erreur de validation',
+                        text: 'Veuillez sélectionner une image.',
+                        confirmButtonColor: '#06A3DA'
+                    });
+                    imgInput.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Add Startup Form Handler with validation
         document.getElementById('addStartupForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            if (!validateStartupForm(this, false)) return;
             console.log('Form submission started');
             
             const formData = new FormData(this);
@@ -757,9 +827,10 @@ unset($_SESSION['error_message']);
             });
         });
 
-        // Edit Startup Form Handler
+        // Edit Startup Form Handler with validation
         document.getElementById('editStartupForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            if (!validateStartupForm(this, true)) return;
             console.log('Edit form submission started');
             
             const formData = new FormData(this);
@@ -833,6 +904,21 @@ unset($_SESSION['error_message']);
                 }
                 reader.readAsDataURL(file);
             }
+        });
+
+        // Instant search/filter for startups table
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const filter = this.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('#startupTable tbody tr');
+            rows.forEach(row => {
+                // Combine all cell text for this row
+                const rowText = Array.from(row.cells).map(td => td.textContent.toLowerCase()).join(' ');
+                if (rowText.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         });
     </script>
 </body>

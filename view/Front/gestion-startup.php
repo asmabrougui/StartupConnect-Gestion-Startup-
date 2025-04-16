@@ -97,6 +97,13 @@ unset($_SESSION['error_message']);
             color: #06A3DA;
         }
 
+        .sidebar ul li a.active {
+            color: #fff !important;
+            background: #06A3DA;
+            border-radius: 4px;
+            padding: 3px 10px;
+        }
+
         .modal-dialog {
             max-width: 600px;
         }
@@ -192,7 +199,7 @@ unset($_SESSION['error_message']);
                         <li><a href="#" data-category="3">Éducation</a></li>
                         <li><a href="#" data-category="4">Finance</a></li>
                         <li><a href="#" data-category="5">E-commerce</a></li>
-                        <li><a href="#" data-category="0">Toutes les catégories</a></li>
+                        <li><a href="#" data-category="0" class="active">Toutes les catégories</a></li>
                     </ul>
                 </div>
             </div>
@@ -334,26 +341,39 @@ unset($_SESSION['error_message']);
     <script src="js/main.js"></script>
     <script>
         $(document).ready(function() {
-            // Search functionality
-            $("#searchInput").on("keyup", function() {
-                var value = $(this).val().toLowerCase();
-                $(".startup-card").filter(function() {
-                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+            let currentCategory = 0;
+
+            // Unified filter function
+            function filterStartups() {
+                const searchValue = $("#searchInput").val().toLowerCase();
+                $(".startup-card").each(function() {
+                    const card = $(this);
+                    const cardText = card.text().toLowerCase();
+                    const cardCategory = card.data("category").toString();
+                    // Category filter
+                    const matchCategory = (currentCategory == 0) || (cardCategory === currentCategory.toString());
+                    // Search filter
+                    const matchSearch = cardText.indexOf(searchValue) > -1;
+                    if (matchCategory && matchSearch) {
+                        card.show();
+                    } else {
+                        card.hide();
+                    }
                 });
+            }
+
+            // Search functionality
+            $("#searchInput").on("input", function() {
+                filterStartups();
             });
 
             // Category filter
             $(".sidebar ul li a").click(function(e) {
                 e.preventDefault();
-                var categoryId = $(this).data("category");
-                if (categoryId === 0) {
-                    // Show all startups
-                    $(".startup-card").show();
-                } else {
-                    // Filter by category
-                    $(".startup-card").hide();
-                    $(".startup-card[data-category='" + categoryId + "']").show();
-                }
+                $(".sidebar ul li a").removeClass("active");
+                $(this).addClass("active");
+                currentCategory = $(this).data("category");
+                filterStartups();
             });
 
             // View startup details
