@@ -1,3 +1,19 @@
+<?php
+session_start();
+require_once '../../Controller/startupC.php';
+
+// Initialiser le contrôleur et récupérer les startups
+$controller = new StartupController();
+$startups = $controller->getAllStartups();
+
+// Messages de notification
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+
+// Nettoyer les messages de session
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -457,58 +473,32 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php 
-                        if ($startups && count($startups) > 0) {
-                            foreach ($startups as $startup): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($startup['id']); ?></td>
-                                <td class="fw-bold"><?php echo htmlspecialchars($startup['name']); ?></td>
-                                <td><?php echo htmlspecialchars($startup['description']); ?></td>
-                                <td>
-                                    <?php
-                                    $categoryClass = '';
-                                    switch(strtolower($startup['category_name'])) {
-                                        case 'technologie':
-                                            $categoryClass = 'bg-info';
-                                            break;
-                                        case 'santé':
-                                            $categoryClass = 'bg-success';
-                                            break;
-                                        case 'éducation':
-                                            $categoryClass = 'bg-warning';
-                                            break;
-                                        case 'finance':
-                                            $categoryClass = 'bg-primary';
-                                            break;
-                                        case 'e-commerce':
-                                            $categoryClass = 'bg-danger';
-                                            break;
-                                        default:
-                                            $categoryClass = 'bg-secondary';
-                                    }
-                                    ?>
-                                    <span class="badge <?php echo $categoryClass; ?> text-white">
-                                        <?php echo htmlspecialchars($startup['category_name']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <button class="btn-action btn-edit" onclick="editStartup(<?php echo $startup['id']; ?>, '<?php echo addslashes($startup['name']); ?>', '<?php echo addslashes($startup['description']); ?>', '<?php echo $startup['category_id']; ?>')">
-                                        <i class="fa fa-edit"></i>
-                                    </button>
-                                    <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="startup_id" value="<?php echo $startup['id']; ?>">
-                                        <button type="submit" name="delete_startup" class="btn-action btn-delete" 
-                                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette startup ?')">
+                        <?php if (!empty($startups)): ?>
+                            <?php foreach ($startups as $startup): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($startup['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($startup['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($startup['description']); ?></td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            <?php echo htmlspecialchars($startup['category_name']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn-action btn-edit" onclick="editStartup(<?php echo $startup['id']; ?>, '<?php echo addslashes($startup['name']); ?>', '<?php echo addslashes($startup['description']); ?>', '<?php echo $startup['category_id']; ?>')">
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete" onclick="deleteStartup(<?php echo $startup['id']; ?>)">
                                             <i class="fa fa-trash"></i>
                                         </button>
-                                    </form>
-                                </td>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="text-center">Aucune startup trouvée</td>
                             </tr>
-                            <?php endforeach;
-                        } else {
-                            echo '<tr><td colspan="5" class="text-center py-4">Aucune startup trouvée</td></tr>';
-                        }
-                        ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -607,6 +597,28 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Add deleteStartup function
+        function deleteStartup(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette startup ?')) {
+                fetch('../../Controller/startupC.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'delete_startup=1&startup_id=' + id
+                })
+                .then(response => response.text())
+                .then(data => {
+                    console.log('Delete response:', data);
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de la suppression');
+                });
+            }
+        }
+
         // Staggered animation for table rows
         document.addEventListener('DOMContentLoaded', function() {
             const rows = document.querySelectorAll('tbody tr');
@@ -670,6 +682,98 @@
                 form.classList.add('was-validated');
             });
         });
+
+        // Form submission handler with logging
+        document.getElementById('addStartupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Form submission started');
+            
+            const formData = new FormData(this);
+            formData.append('add_startup', '1'); // Add this line to indicate add operation
+            
+            console.log('Form data:', Object.fromEntries(formData));
+            
+            fetch('../../Controller/startupC.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.text();
+            })
+            .then(data => {
+                console.log('Server response:', data);
+                // Show success message
+                const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+                document.querySelector('#successToast .toast-body').textContent = "Startup ajoutée avec succès!";
+                successToast.show();
+                
+                // Close modal and refresh page after short delay
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addStartupModal'));
+                    modal.hide();
+                    location.reload();
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
+                document.querySelector('#errorToast .toast-body').textContent = "Une erreur s'est produite lors de l'ajout de la startup.";
+                errorToast.show();
+            });
+        });
+
+        // Edit Startup Form Handler
+        document.getElementById('editStartupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Edit form submission started');
+            
+            const formData = new FormData(this);
+            formData.append('update_startup', '1');
+            
+            console.log('Edit form data:', Object.fromEntries(formData));
+            
+            fetch('../../Controller/startupC.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.text();
+            })
+            .then(data => {
+                console.log('Server response:', data);
+                const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+                document.querySelector('#successToast .toast-body').textContent = "Startup modifiée avec succès!";
+                successToast.show();
+                
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editStartupModal'));
+                    modal.hide();
+                    location.reload();
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
+                document.querySelector('#errorToast .toast-body').textContent = "Une erreur s'est produite lors de la modification de la startup.";
+                errorToast.show();
+            });
+        });
+
+        // Show success message if present
+        <?php if (isset($_SESSION['success_message'])): ?>
+            const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+            document.querySelector('#successToast .toast-body').textContent = <?php echo json_encode($_SESSION['success_message']); ?>;
+            successToast.show();
+        <?php endif; ?>
+
+        // Show error message if present
+        <?php if (isset($_SESSION['error_message'])): ?>
+            const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
+            document.querySelector('#errorToast .toast-body').textContent = <?php echo json_encode($_SESSION['error_message']); ?>;
+            errorToast.show();
+        <?php endif; ?>
     </script>
 </body>
 </html>

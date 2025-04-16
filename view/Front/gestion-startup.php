@@ -2,11 +2,20 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+session_start();
 require_once '../../config.php';
 require_once '../../Controller/startupC.php';
 
 $controller = new StartupController();
 $startups = $controller->getAllStartups();
+
+// Message handling
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+
+// Clear the messages
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -149,6 +158,20 @@ $startups = $controller->getAllStartups();
 
     <!-- Main Content -->
     <div class="container py-5" style="margin-top: 100px !important;">
+        <?php if ($success_message): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?php echo $success_message; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($error_message): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?php echo $error_message; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3">
@@ -200,10 +223,10 @@ $startups = $controller->getAllStartups();
                                         <p class="badge bg-info"><?php echo htmlspecialchars($startup['category_name']); ?></p>
                                         <div class="d-flex justify-content-between mt-3">
                                             <a href="#" class="btn btn-primary btn-sm view-startup" data-id="<?php echo $startup['id']; ?>">Voir plus</a>
-                                            <div>
-                                                <a href="#" class="btn btn-warning btn-sm edit-startup" data-id="<?php echo $startup['id']; ?>"><i class="fas fa-edit"></i></a>
-                                                <a href="#" class="btn btn-danger btn-sm delete-startup" data-id="<?php echo $startup['id']; ?>"><i class="fas fa-trash"></i></a>
-                                            </div>
+                                            <a href="#" class="btn btn-warning btn-sm edit-startup" data-id="<?php echo $startup['id']; ?>" 
+                                                data-name="<?php echo htmlspecialchars($startup['name']); ?>"
+                                                data-description="<?php echo htmlspecialchars($startup['description']); ?>"
+                                                data-category="<?php echo $startup['category_id']; ?>">Modifier</a>
                                         </div>
                                     </div>
                                 </div>
@@ -244,7 +267,6 @@ $startups = $controller->getAllStartups();
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
-
     <script>
         $(document).ready(function() {
             // Search functionality
@@ -259,7 +281,6 @@ $startups = $controller->getAllStartups();
             $(".sidebar ul li a").click(function(e) {
                 e.preventDefault();
                 var categoryId = $(this).data("category");
-                
                 if (categoryId === 0) {
                     // Show all startups
                     $(".startup-card").show();
@@ -274,33 +295,35 @@ $startups = $controller->getAllStartups();
             $(".view-startup").click(function(e) {
                 e.preventDefault();
                 var startupId = $(this).data("id");
-                
                 // Here you would typically load the startup details via AJAX
-                // For now, we'll just show a placeholder
                 $("#viewStartupContent").html("<p>Chargement des détails pour la startup ID: " + startupId + "...</p>");
                 $("#viewStartupModal").modal("show");
             });
 
-            // Edit startup - implement if needed
+            // Edit startup
             $(".edit-startup").click(function(e) {
                 e.preventDefault();
                 var startupId = $(this).data("id");
-                alert("Modifier la startup ID: " + startupId);
-                // Implement edit functionality
+                var name = $(this).data("name");
+                var description = $(this).data("description");
+                var category = $(this).data("category");
+                
+                $("#editStartupId").val(startupId);
+                $("#editName").val(name);
+                $("#editDescription").val(description);
+                $("#editCategory").val(category);
+                $("#editStartupModal").modal("show");
             });
 
-            // Delete startup - implement if needed
+            // Delete startup
             $(".delete-startup").click(function(e) {
                 e.preventDefault();
                 var startupId = $(this).data("id");
                 if (confirm("Êtes-vous sûr de vouloir supprimer cette startup ?")) {
-                    // Implement delete functionality
-                    // You could redirect to a delete.php page or use AJAX
                     window.location.href = "delete-startup.php?id=" + startupId;
                 }
             });
         });
     </script>
 </body>
-
 </html>
