@@ -38,6 +38,7 @@ unset($_SESSION['error_message']);
     <!-- Libraries Stylesheet -->
     <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
     <link href="lib/animate/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -46,79 +47,127 @@ unset($_SESSION['error_message']);
     <link href="css/style.css" rel="stylesheet">
 
     <style>
-        /* Custom styles for the gallery */
-        .card img {
-            height: 200px;
-            object-fit: cover;
-            transition: transform 0.3s ease;
+        /* Enhanced custom styles */
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
         }
 
-        .card:hover img {
-            transform: scale(1.1);
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(6, 163, 218, 0.2);
+        }
+
+        .startup-image {
+            height: 220px;
+            transition: all 0.5s ease;
+        }
+
+        .card:hover .startup-image {
+            transform: scale(1.05);
         }
 
         .search-bar {
-            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        #searchInput {
+            border-radius: 25px;
+            padding-left: 20px;
+            border: 2px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        #searchInput:focus {
+            border-color: #06A3DA;
+            box-shadow: 0 0 0 0.2rem rgba(6, 163, 218, 0.25);
         }
 
         .filter-btn {
-            margin-left: 10px;
+            border-radius: 25px;
+            padding: 8px 25px;
+            background: #06A3DA;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: #058bb8;
+            transform: translateY(-2px);
         }
 
         .sidebar {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar h4 {
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .sidebar ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .sidebar ul li {
-            margin-bottom: 10px;
+            background: linear-gradient(145deg, #ffffff, #f5f5f5);
+            border-radius: 15px;
         }
 
         .sidebar ul li a {
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
-            transition: color 0.3s ease;
+            display: block;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
 
         .sidebar ul li a:hover {
-            color: #06A3DA;
+            background: rgba(6, 163, 218, 0.1);
+            padding-left: 20px;
         }
 
         .sidebar ul li a.active {
-            color: #fff !important;
+            background: linear-gradient(145deg, #06A3DA, #0590c0);
+        }
+
+        .badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            border-radius: 25px;
+            padding: 8px 20px;
             background: #06A3DA;
-            border-radius: 4px;
-            padding: 3px 10px;
+            border: none;
+            transition: all 0.3s ease;
         }
 
-        .modal-dialog {
-            max-width: 600px;
+        .btn-primary:hover {
+            background: #058bb8;
+            transform: translateY(-2px);
         }
 
+        /* Modal enhancements */
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .modal-header {
+            background: linear-gradient(145deg, #06A3DA, #0590c0);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        /* Alert animations */
         .alert {
-            margin-top: 20px;
+            border-radius: 10px;
+            animation: slideInDown 0.5s ease;
         }
-        
-        /* Added styles for startup images */
-        .startup-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 5px 5px 0 0;
-            border-bottom: 1px solid #eef0f5;
+
+        /* Category icons */
+        .category-icon {
+            margin-right: 10px;
+            font-size: 1.2em;
         }
     </style>
 </head>
@@ -194,12 +243,12 @@ unset($_SESSION['error_message']);
                 <div class="sidebar">
                     <h4>Catégories</h4>
                     <ul>
-                        <li><a href="#" data-category="1">Technologie</a></li>
-                        <li><a href="#" data-category="2">Santé</a></li>
-                        <li><a href="#" data-category="3">Éducation</a></li>
-                        <li><a href="#" data-category="4">Finance</a></li>
-                        <li><a href="#" data-category="5">E-commerce</a></li>
-                        <li><a href="#" data-category="0" class="active">Toutes les catégories</a></li>
+                        <li><a href="#" data-category="1"><i class="fas fa-microchip category-icon"></i>Technologie</a></li>
+                        <li><a href="#" data-category="2"><i class="fas fa-heartbeat category-icon"></i>Santé</a></li>
+                        <li><a href="#" data-category="3"><i class="fas fa-graduation-cap category-icon"></i>Éducation</a></li>
+                        <li><a href="#" data-category="4"><i class="fas fa-chart-line category-icon"></i>Finance</a></li>
+                        <li><a href="#" data-category="5"><i class="fas fa-shopping-cart category-icon"></i>E-commerce</a></li>
+                        <li><a href="#" data-category="0" class="active"><i class="fas fa-th category-icon"></i>Toutes les catégories</a></li>
                     </ul>
                 </div>
             </div>
@@ -213,12 +262,15 @@ unset($_SESSION['error_message']);
                 </div>
 
                 <!-- Search Bar and Filter -->
-                <div class="row search-bar mt-3">
+                <div class="row search-bar mt-3 animate__animated animate__fadeIn">
                     <div class="col-md-9">
-                        <input type="text" class="form-control" id="searchInput" placeholder="Rechercher une startup...">
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Rechercher une startup...">
+                        </div>
                     </div>
                     <div class="col-md-3 text-end">
-                        <button class="btn btn-secondary filter-btn">Filtrer</button>
+                        <button class="btn filter-btn text-white"><i class="fas fa-filter me-2"></i>Filtrer</button>
                     </div>
                 </div>
 
@@ -339,6 +391,9 @@ unset($_SESSION['error_message']);
         $(document).ready(function() {
             let currentCategory = 0;
 
+            // Add animation classes to cards
+            $(".startup-card").addClass("animate__animated animate__fadeIn");
+
             // Unified filter function
             function filterStartups() {
                 const searchValue = $("#searchInput").val().toLowerCase();
@@ -351,9 +406,11 @@ unset($_SESSION['error_message']);
                     // Search filter
                     const matchSearch = cardText.indexOf(searchValue) > -1;
                     if (matchCategory && matchSearch) {
-                        card.show();
+                        card.removeClass("animate__fadeOut").addClass("animate__fadeIn");
+                        setTimeout(() => card.show(), 200);
                     } else {
-                        card.hide();
+                        card.removeClass("animate__fadeIn").addClass("animate__fadeOut");
+                        setTimeout(() => card.hide(), 200);
                     }
                 });
             }

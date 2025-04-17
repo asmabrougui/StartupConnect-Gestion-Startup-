@@ -395,6 +395,88 @@ unset($_SESSION['error_message']);
             border-radius: 5px;
             border: 1px solid #eef0f5;
         }
+
+        /* Enhanced Search Styles */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-wrapper .input-group {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .search-wrapper .input-group-text {
+            border: 1px solid #e0e0e0;
+            padding: 0.75rem 1rem;
+        }
+
+        #searchInput {
+            border: 1px solid #e0e0e0;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            box-shadow: none;
+        }
+
+        #searchInput:focus {
+            border-color: var(--primary);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 5px;
+        }
+
+        .search-result-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eef0f5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-result-item:hover {
+            background-color: rgba(6, 163, 218, 0.1);
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .highlight {
+            background-color: rgba(6, 163, 218, 0.2);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        #clearSearch {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        /* Category Filter Styles */
+        #categoryFilter {
+            height: 100%;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            padding: 0.75rem 1rem;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        #categoryFilter:focus {
+            border-color: var(--primary);
+        }
     </style>
 </head>
 
@@ -469,9 +551,31 @@ unset($_SESSION['error_message']);
         </div>
         
         <!-- Search Bar Start -->
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <input type="text" id="searchInput" class="form-control" placeholder="Rechercher une startup...">
+        <div class="row mb-4 fade-in">
+            <div class="col-md-8">
+                <div class="search-wrapper">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-primary"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control border-start-0 ps-0" 
+                               placeholder="Rechercher par nom, description ou catégorie...">
+                        <button class="btn btn-primary" id="clearSearch" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="search-results" style="display: none;"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="categoryFilter">
+                    <option value="">Toutes les catégories</option>
+                    <option value="1">Technologie</option>
+                    <option value="2">Santé</option>
+                    <option value="3">Éducation</option>
+                    <option value="4">Finance</option>
+                    <option value="5">E-commerce</option>
+                </select>
             </div>
         </div>
         <!-- Search Bar End -->
@@ -511,7 +615,7 @@ unset($_SESSION['error_message']);
                                     <td><?php echo htmlspecialchars($startup['name']); ?></td>
                                     <td><?php echo htmlspecialchars($startup['description']); ?></td>
                                     <td>
-                                        <span class="badge bg-info">
+                                        <span class="badge bg-info" data-category-id="<?php echo htmlspecialchars($startup['category_id']); ?>">
                                             <?php echo htmlspecialchars($startup['category_name']); ?>
                                         </span>
                                     </td>
@@ -907,18 +1011,85 @@ unset($_SESSION['error_message']);
         });
 
         // Instant search/filter for startups table
-        document.getElementById('searchInput').addEventListener('input', function() {
-            const filter = this.value.trim().toLowerCase();
-            const rows = document.querySelectorAll('#startupTable tbody tr');
-            rows.forEach(row => {
-                // Combine all cell text for this row
-                const rowText = Array.from(row.cells).map(td => td.textContent.toLowerCase()).join(' ');
-                if (rowText.includes(filter)) {
-                    row.style.display = '';
+        $(document).ready(function() {
+            const searchInput = $('#searchInput');
+            const clearSearch = $('#clearSearch');
+            const categoryFilter = $('#categoryFilter');
+            let searchTimeout;
+
+            function highlightText(text, search) {
+                const pattern = new RegExp(`(${search})`, 'gi');
+                return text.replace(pattern, '<span class="highlight">$1</span>');
+            }
+
+            function filterTable() {
+                const searchText = searchInput.val().toLowerCase();
+                const categoryValue = categoryFilter.val();
+                let hasResults = false;
+
+                $('#startupTable tbody tr').each(function() {
+                    const row = $(this);
+                    const name = row.find('td:nth-child(3)').text().toLowerCase();
+                    const description = row.find('td:nth-child(4)').text().toLowerCase();
+                    const category = row.find('td:nth-child(5)').text().toLowerCase();
+                    const categoryId = row.find('td:nth-child(5)').data('category-id');
+
+                    const matchesSearch = searchText === '' || 
+                        name.includes(searchText) || 
+                        description.includes(searchText) || 
+                        category.includes(searchText);
+
+                    const matchesCategory = categoryValue === '' || 
+                        categoryId === categoryValue;
+
+                    if (matchesSearch && matchesCategory) {
+                        row.show();
+                        hasResults = true;
+                        
+                        // Highlight matching text if there's a search term
+                        if (searchText) {
+                            row.find('td:nth-child(3)').html(highlightText(name, searchText));
+                            row.find('td:nth-child(4)').html(highlightText(description, searchText));
+                            row.find('td:nth-child(5) .badge').html(highlightText(category, searchText));
+                        }
+                    } else {
+                        row.hide();
+                    }
+                });
+
+                // Show/hide no results message
+                if (!hasResults) {
+                    if ($('#noResults').length === 0) {
+                        $('#startupTable tbody').append(
+                            '<tr id="noResults"><td colspan="6" class="text-center">Aucun résultat trouvé</td></tr>'
+                        );
+                    }
                 } else {
-                    row.style.display = 'none';
+                    $('#noResults').remove();
                 }
+            }
+
+            // Search input handler with debouncing
+            searchInput.on('input', function() {
+                clearTimeout(searchTimeout);
+                const searchText = $(this).val();
+                clearSearch.toggle(searchText.length > 0);
+
+                searchTimeout = setTimeout(filterTable, 300);
             });
+
+            // Category filter handler
+            categoryFilter.on('change', filterTable);
+
+            // Clear search button handler
+            clearSearch.on('click', function() {
+                searchInput.val('');
+                $(this).hide();
+                filterTable();
+            });
+
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
         });
     </script>
 </body>
