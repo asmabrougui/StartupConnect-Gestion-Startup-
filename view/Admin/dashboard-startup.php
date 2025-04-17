@@ -206,7 +206,7 @@ unset($_SESSION['error_message']);
         }
         
         .floating-btn:hover {
-            transform: translateY(-5px) scale(1.05);
+            transform: translateY(-5px);
             box-shadow: 0 8px 25px rgba(6, 163, 218, 0.5);
         }
         
@@ -477,6 +477,68 @@ unset($_SESSION['error_message']);
         #categoryFilter:focus {
             border-color: var(--primary);
         }
+
+        /* Add these new styles */
+        .analytics-card {
+            background: linear-gradient(145deg, #ffffff, #f5f5f5);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .analytics-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(6, 163, 218, 0.2);
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .chart-container {
+            height: 200px;
+            margin-top: 15px;
+        }
+
+        /* Enhanced animations */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-up {
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
@@ -641,6 +703,45 @@ unset($_SESSION['error_message']);
                 </table>
             </div>
         </div>
+
+        <!-- Enhanced Analytics Container -->
+        <div class="analytics-container fade-in mt-4">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <h3 class="slide-up"><i class="fas fa-chart-line me-2"></i>Analytics Overview</h3>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="analytics-card slide-up" style="animation-delay: 0.1s">
+                        <h5><i class="fas fa-eye me-2"></i>Most Viewed</h5>
+                        <div class="metric-value" id="totalViewsValue">-</div>
+                        <div class="metric-label">Total Views</div>
+                        <div class="chart-container">
+                            <canvas id="viewsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="analytics-card slide-up" style="animation-delay: 0.2s">
+                        <h5><i class="fas fa-star me-2"></i>Top Rated</h5>
+                        <div class="metric-value" id="avgRatingValue">-</div>
+                        <div class="metric-label">Average Rating</div>
+                        <div class="chart-container">
+                            <canvas id="ratingsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="analytics-card slide-up" style="animation-delay: 0.3s">
+                        <h5><i class="fas fa-trending-up me-2"></i>Trending</h5>
+                        <div class="metric-value" id="trendingValue">-</div>
+                        <div class="metric-label">Active Startups</div>
+                        <div class="chart-container">
+                            <canvas id="trendingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- Dashboard Content End -->
 
@@ -747,6 +848,7 @@ unset($_SESSION['error_message']);
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Add deleteStartup function
         function deleteStartup(id) {
@@ -1110,6 +1212,186 @@ unset($_SESSION['error_message']);
                 this.disabled = false;
             }, 2000);
         });
+
+        // Add/Update these functions
+        function updateAnalyticsDisplays(data) {
+            // Update metrics with animation
+            animateValue('totalViewsValue', 0, data.totalViews || 0, 1000);
+            animateValue('avgRatingValue', 0, data.averageRating || 0, 1000, 1);
+            animateValue('trendingValue', 0, data.topStartups ? data.topStartups.length : 0, 1000);
+
+            // Update charts if data exists
+            if (data.topStartups && data.topStartups.length > 0) {
+                // Clear existing charts
+                ['viewsChart', 'ratingsChart', 'trendingChart'].forEach(chartId => {
+                    const canvas = document.getElementById(chartId);
+                    if (canvas) {
+                        const context = canvas.getContext('2d');
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                });
+
+                // Create new charts
+                createViewsChart(data.topStartups);
+                createRatingsChart(data.topStartups);
+                createTrendingChart(data.topStartups);
+            }
+        }
+
+        function createViewsChart(startups) {
+            const ctx = document.getElementById('viewsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: startups.map(s => s.name),
+                    datasets: [{
+                        label: 'Views',
+                        data: startups.map(s => s.view_count || 0),
+                        backgroundColor: 'rgba(6, 163, 218, 0.5)',
+                        borderColor: 'rgba(6, 163, 218, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRatingsChart(startups) {
+            const ctx = document.getElementById('ratingsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: startups.map(s => s.name),
+                    datasets: [{
+                        label: 'Average Rating',
+                        data: startups.map(s => s.avg_rating || 0),
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTrendingChart(startups) {
+            const ctx = document.getElementById('trendingChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: startups.map(s => s.name),
+                    datasets: [{
+                        data: startups.map(s => 
+                            ((s.view_count || 0) * 0.4) + 
+                            ((s.avg_rating || 0) * 0.4) + 
+                            ((s.rating_count || 0) * 0.2)
+                        ),
+                        backgroundColor: [
+                            'rgba(6, 163, 218, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(108, 117, 125, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        animateRotate: true,
+                        animateScale: true
+                    }
+                }
+            });
+        }
+
+        // Update loadAnalytics function
+        function loadAnalytics() {
+            // Show loading state
+            document.querySelectorAll('.metric-value').forEach(el => {
+                el.innerHTML = '<div class="loading-spinner mx-auto"></div>';
+            });
+
+            fetch('../../Controller/AnalyticsController.php?action=get_analytics')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.success) throw new Error(data.message || 'Failed to load analytics');
+                    updateAnalyticsDisplays(data);
+                })
+                .catch(error => {
+                    console.error('Error loading analytics:', error);
+                    showErrorMessage('Failed to load analytics data');
+                    // Reset loading state
+                    document.querySelectorAll('.metric-value').forEach(el => {
+                        el.textContent = '-';
+                    });
+                });
+        }
+
+        function showErrorMessage(message) {
+            const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
+            document.querySelector('#errorToast .toast-body').textContent = message;
+            errorToast.show();
+        }
+
+        function animateValue(elementId, start, end, duration, decimals = 0) {
+            if (!document.getElementById(elementId)) {
+                console.error(`Element with id ${elementId} not found`);
+                return;
+            }
+
+            const element = document.getElementById(elementId);
+            const range = end - start;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += 1;
+                if (current >= end) {
+                    element.textContent = decimals ? end.toFixed(decimals) : end;
+                    clearInterval(timer);
+                    return;
+                }
+                element.textContent = decimals ? current.toFixed(decimals) : current;
+            }, stepTime);
+        }
+
+        // Initialize analytics on page load
+        document.addEventListener('DOMContentLoaded', loadAnalytics);
+
+        // Refresh analytics every 5 minutes
+        setInterval(loadAnalytics, 300000);
     </script>
 </body>
 </html>
