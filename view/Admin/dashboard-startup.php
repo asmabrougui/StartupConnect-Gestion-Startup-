@@ -542,6 +542,9 @@ unset($_SESSION['error_message']);
                         <button class="btn btn-light" id="refreshBtn">
                             <i class="fas fa-sync-alt me-2"></i>Actualiser
                         </button>
+                        <button class="btn btn-success ms-2" id="exportPDFBtn">
+                            <i class="fas fa-file-pdf me-2"></i>Exporter PDF
+                        </button>
                         <button class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#addStartupModal">
                             <i class="fas fa-plus me-2"></i>Ajouter une Startup
                         </button>
@@ -1090,6 +1093,22 @@ unset($_SESSION['error_message']);
 
             // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();
+        });
+
+        // Add export PDF functionality
+        document.getElementById('exportPDFBtn').addEventListener('click', function() {
+            // Show loading state
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Exportation...';
+            this.disabled = true;
+
+            // Trigger PDF export
+            window.location.href = '../../Controller/PDFExportC.php?action=export_pdf';
+
+            // Reset button state after a delay
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-file-pdf me-2"></i>Exporter PDF';
+                this.disabled = false;
+            }, 2000);
         });
     </script>
 </body>
