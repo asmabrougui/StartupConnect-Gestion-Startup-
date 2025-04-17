@@ -23,36 +23,47 @@ class AnalyticsController {
 
     private function getAnalyticsData() {
         try {
-            // Get all startups with their metrics
-            $startups = $this->model->getTrendingStartups();
+            $data = $this->model->getTrendingStartups();
             
-            // Calculate total views
-            $totalViews = array_sum(array_column($startups, 'view_count'));
-            
-            // Calculate average rating
-            $ratings = array_filter(array_column($startups, 'avg_rating'));
-            $averageRating = count($ratings) > 0 ? array_sum($ratings) / count($ratings) : 0;
-            
+            if (!$data['success']) {
+                throw new Exception($data['error']);
+            }
+
+            // Calculate metrics
             $response = [
                 'success' => true,
-                'totalViews' => $totalViews,
-                'averageRating' => round($averageRating, 1),
-                'trendingCount' => count($startups),
-                'topStartups' => array_slice($startups, 0, 5)
+                'totalViews' => $data['totalViews'],
+                'averageRating' => 0,
+                'trendingCount' => count($data['startups']),
+                'topStartups' => $data['startups']
             ];
+
+            // Calculate average rating
+            $totalRating = 0;
+            $ratedStartups = 0;
+            foreach ($data['startups'] as $startup) {
+                if ($startup['avg_rating']) {
+                    $totalRating += $startup['avg_rating'];
+                    $ratedStartups++;
+                }
+            }
+            $response['averageRating'] = $ratedStartups ? round($totalRating / $ratedStartups, 1) : 0;
 
             header('Content-Type: application/json');
             echo json_encode($response);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
     private function recordView($startupId) {
         if (!$startupId) {
             http_response_code(400);
-            echo json_encode(['error' => 'Startup ID required']);
+            echo json_encode(['success' => false, 'error' => 'Startup ID required']);
             return;
         }
 
@@ -62,7 +73,7 @@ class AnalyticsController {
             echo json_encode(['success' => $success]);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
 }

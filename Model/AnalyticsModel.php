@@ -35,24 +35,40 @@ class AnalyticsModel {
         try {
             $sql = "SELECT 
                         s.*, 
-                        COUNT(sr.id) as rating_count,
+                        c.name as category_name,
+                        COUNT(DISTINCT sr.id) as rating_count,
                         AVG(sr.rating) as avg_rating,
-                        COUNT(sv.id) as view_count
+                        COUNT(DISTINCT sv.id) as view_count
                     FROM startup s
+                    LEFT JOIN categorie c ON s.category_id = c.id
                     LEFT JOIN startup_ratings sr ON s.id = sr.startup_id
                     LEFT JOIN startup_views sv ON s.id = sv.startup_id
-                    WHERE sr.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                     GROUP BY s.id
-                    ORDER BY (COUNT(sr.id) * 0.4 + AVG(sr.rating) * 0.4 + COUNT(sv.id) * 0.2) DESC
+                    ORDER BY view_count DESC, avg_rating DESC
                     LIMIT :limit";
             
             $query = $this->db->prepare($sql);
             $query->bindValue(':limit', $limit, PDO::PARAM_INT);
             $query->execute();
-            return $query->fetchAll(PDO::FETCH_ASSOC);
+            
+            $startups = $query->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Calculate total views
+            $sql = "SELECT COUNT(*) as total_views FROM startup_views";
+            $query = $this->db->query($sql);
+            $totalViews = $query->fetch(PDO::FETCH_ASSOC)['total_views'] ?? 0;
+            
+            return [
+                'startups' => $startups,
+                'totalViews' => $totalViews,
+                'success' => true
+            ];
         } catch (Exception $e) {
             error_log("Error in getTrendingStartups: " . $e->getMessage());
-            return [];
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
         }
     }
 
