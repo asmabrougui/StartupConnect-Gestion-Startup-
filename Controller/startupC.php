@@ -87,9 +87,89 @@ class StartupController {
         return $this->model->getStartupById($id);
     }
 
+    // Add rating functionality
+    public function rateStartup($startupId, $rating, $comment = null) {
+        try {
+            // For now, we'll use a simple rating without user tracking
+            $sql = "INSERT INTO startup_ratings (startup_id, rating, comment) 
+                    VALUES (:startup_id, :rating, :comment)";
+            $stmt = $this->model->getDb()->prepare($sql);
+            return $stmt->execute([
+                'startup_id' => $startupId,
+                'rating' => $rating,
+                'comment' => $comment
+            ]);
+        } catch (Exception $e) {
+            error_log("Error in rateStartup: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Get average rating for a startup
+    public function getStartupRating($startupId) {
+        try {
+            $sql = "SELECT AVG(rating) as average_rating, COUNT(*) as total_ratings 
+                    FROM startup_ratings 
+                    WHERE startup_id = :startup_id";
+            $stmt = $this->model->getDb()->prepare($sql);
+            $stmt->execute(['startup_id' => $startupId]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error in getStartupRating: " . $e->getMessage());
+            return ['average_rating' => 0, 'total_ratings' => 0];
+        }
+    }
+
+    // Get startup details with ratings
+    public function getStartupDetails($id) {
+        try {
+            $startup = $this->model->getStartupById($id);
+            if (!$startup) {
+                throw new Exception("Startup non trouvée");
+            }
+
+            // Get startup category name
+            $sql = "SELECT name FROM categorie WHERE id = :id";
+            $stmt = $this->model->getDb()->prepare($sql);
+            $stmt->execute(['id' => $startup['category_id']]);
+            $category = $stmt->fetch(PDO::FETCH_ASSOC);
+            $startup['category_name'] = $category['name'] ?? '';
+
+            // Get ratings with comments
+            $sql = "SELECT rating, comment, created_at 
+                   FROM startup_ratings 
+                   WHERE startup_id = :startup_id 
+                   ORDER BY created_at DESC";
+            $stmt = $this->model->getDb()->prepare($sql);
+            $stmt->execute(['startup_id' => $id]);
+            $ratings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return [
+                'success' => true,
+                'startup' => $startup,
+                'ratings' => $ratings
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
     // Handle form submissions
     public function handleRequest() {
         try {
+            // Add this at the beginning of handleRequest method
+            if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
+                if ($_GET['action'] === 'get_startup_details' && isset($_GET['id'])) {
+                    $details = $this->getStartupDetails($_GET['id']);
+                    header('Content-Type: application/json');
+                    echo json_encode($details);
+                    exit;
+                }
+            }
+
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log("POST request received: " . print_r($_POST, true));
 
@@ -195,6 +275,27 @@ class StartupController {
                     } else {
                         throw new Exception("Erreur lors de la modification de la startup");
                     }
+                }
+
+                // Handle rate operation
+                if (isset($_POST['action']) && $_POST['action'] === 'rate_startup') {
+                    try {
+                        $startupId = $_POST['startup_id'];
+                        $rating = $_POST['rating'];
+                        $comment = $_POST['comment'] ?? null;
+
+                        if ($this->rateStartup($startupId, $rating, $comment)) {
+                            echo json_encode(['success' => true]);
+                        } else {
+                            throw new Exception('Failed to save rating');
+                        }
+                    } catch (Exception $e) {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => $e->getMessage()
+                        ]);
+                    }
+                    exit;
                 }
             }
         } catch (Exception $e) {

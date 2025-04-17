@@ -8,10 +8,17 @@ class StartupModel {
         $this->db = Config::GetConnexion();
     }
 
+    // Add this method
+    public function getDb() {
+        return $this->db;
+    }
+
     // Lire toutes les startups avec leurs catégories
     public function getAllStartups() {
         try {
-            $sql = "SELECT s.*, c.name as category_name 
+            $sql = "SELECT s.*, c.name as category_name,
+                           (SELECT AVG(rating) FROM startup_ratings WHERE startup_id = s.id) as average_rating,
+                           (SELECT COUNT(*) FROM startup_ratings WHERE startup_id = s.id) as total_ratings
                     FROM startup s 
                     LEFT JOIN categorie c ON s.category_id = c.id 
                     ORDER BY s.id DESC";
@@ -19,7 +26,6 @@ class StartupModel {
             $query->execute();
             $results = $query->fetchAll(PDO::FETCH_ASSOC);
             
-            // Add debug logging
             error_log("Query results: " . print_r($results, true));
             
             return $results;
