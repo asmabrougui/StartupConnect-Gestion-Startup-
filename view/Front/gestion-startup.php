@@ -226,6 +226,33 @@ unset($_SESSION['error_message']);
             background-position: right 0.75rem center;
             background-size: 16px 12px;
         }
+
+        .category-filter {
+            display: block;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .category-filter:hover {
+            background: rgba(6, 163, 218, 0.1);
+            color: #06A3DA;
+            text-decoration: none;
+            transform: translateX(5px);
+        }
+
+        .category-filter.active {
+            background: linear-gradient(145deg, #06A3DA, #0590c0);
+            color: white;
+        }
+
+        .category-icon {
+            width: 25px;
+            text-align: center;
+            margin-right: 10px;
+        }
     </style>
 </head>
 
@@ -299,13 +326,25 @@ unset($_SESSION['error_message']);
             <div class="col-md-3">
                 <div class="sidebar">
                     <h4>Catégories</h4>
-                    <ul>
-                        <li><a href="#" data-category="1"><i class="fas fa-microchip category-icon"></i>Technologie</a></li>
-                        <li><a href="#" data-category="2"><i class="fas fa-heartbeat category-icon"></i>Santé</a></li>
-                        <li><a href="#" data-category="3"><i class="fas fa-graduation-cap category-icon"></i>Éducation</a></li>
-                        <li><a href="#" data-category="4"><i class="fas fa-chart-line category-icon"></i>Finance</a></li>
-                        <li><a href="#" data-category="5"><i class="fas fa-shopping-cart category-icon"></i>E-commerce</a></li>
-                        <li><a href="#" data-category="0" class="active"><i class="fas fa-th category-icon"></i>Toutes les catégories</a></li>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="category-filter" data-category="0">
+                            <i class="fas fa-th category-icon"></i>Toutes les catégories
+                        </a></li>
+                        <li><a href="#" class="category-filter" data-category="1">
+                            <i class="fas fa-microchip category-icon"></i>Technologie
+                        </a></li>
+                        <li><a href="#" class="category-filter" data-category="2">
+                            <i class="fas fa-heartbeat category-icon"></i>Santé
+                        </a></li>
+                        <li><a href="#" class="category-filter" data-category="3">
+                            <i class="fas fa-graduation-cap category-icon"></i>Éducation
+                        </a></li>
+                        <li><a href="#" class="category-filter" data-category="4">
+                            <i class="fas fa-chart-line category-icon"></i>Finance
+                        </a></li>
+                        <li><a href="#" class="category-filter" data-category="5">
+                            <i class="fas fa-shopping-cart category-icon"></i>E-commerce
+                        </a></li>
                     </ul>
                 </div>
             </div>
@@ -395,10 +434,8 @@ unset($_SESSION['error_message']);
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
-            </div>
-        </div>
-    </div>
 
+     
     <!-- View Startup Modal -->
     <div class="modal fade" id="viewStartupModal" tabindex="-1" aria-labelledby="viewStartupModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -707,6 +744,86 @@ unset($_SESSION['error_message']);
                 .catch(error => {
                     alert(error.message);
                 });
+            });
+
+            // Load recommendations for the first startup or a featured startup
+            function loadRecommendations(startupId) {
+                fetch(`../../Controller/RecommendationController.php?action=similar&startup_id=${startupId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.data.length > 0) {
+                            const html = data.data.map(startup => `
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100">
+                                        <img src="${startup.image_path || '/startupConnect-website/uploads/defaults/default-startup.png'}" 
+                                             class="card-img-top" alt="${startup.name}"
+                                             style="height: 200px; object-fit: cover;">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${startup.name}</h5>
+                                            <p class="card-text">${startup.description.substring(0, 100)}...</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge bg-info">${startup.matching_tags} tags en commun</span>
+                                                <button class="btn btn-primary btn-sm" onclick="viewStartup(${startup.id})">
+                                                    Voir plus
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+                            document.getElementById('recommendedStartups').innerHTML = html;
+                        } else {
+                            document.getElementById('recommendedStartups').innerHTML = 
+                                '<div class="col-12 text-center">Aucune recommandation disponible</div>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('recommendedStartups').innerHTML = 
+                            '<div class="col-12 text-center text-danger">Erreur lors du chargement des recommandations</div>';
+                    });
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                loadRecommendations(1); // You can change this to any default startup ID
+            });
+
+            // Add this new code for category filtering
+            $('.category-filter').click(function(e) {
+                e.preventDefault();
+                const selectedCategory = $(this).data('category');
+                
+                // Update active state
+                $('.category-filter').removeClass('active');
+                $(this).addClass('active');
+                
+                // Filter startups
+                $('.startup-card').each(function() {
+                    const cardCategory = $(this).data('category');
+                    if (selectedCategory === 0 || cardCategory === selectedCategory) {
+                        $(this).removeClass('animate__fadeOut')
+                               .addClass('animate__fadeIn')
+                               .show();
+                    } else {
+                        $(this).removeClass('animate__fadeIn')
+                               .addClass('animate__fadeOut')
+                               .hide();
+                    }
+                });
+
+                // Show "No results" message if needed
+                const visibleCards = $('.startup-card:visible').length;
+                if (visibleCards === 0) {
+                    if ($('#noResults').length === 0) {
+                        $('#startupGallery').append(
+                            '<div id="noResults" class="col-12 text-center">' +
+                            '<p>Aucune startup trouvée dans cette catégorie</p>' +
+                            '</div>'
+                        );
+                    }
+                } else {
+                    $('#noResults').remove();
+                }
             });
         });
     </script>

@@ -1122,11 +1122,6 @@ unset($_SESSION['error_message']);
             const categoryFilter = $('#categoryFilter');
             let searchTimeout;
 
-            function highlightText(text, search) {
-                const pattern = new RegExp(`(${search})`, 'gi');
-                return text.replace(pattern, '<span class="highlight">$1</span>');
-            }
-
             function filterTable() {
                 const searchText = searchInput.val().toLowerCase();
                 const categoryValue = categoryFilter.val();
@@ -1136,29 +1131,20 @@ unset($_SESSION['error_message']);
                     const row = $(this);
                     const name = row.find('td:nth-child(3)').text().toLowerCase();
                     const description = row.find('td:nth-child(4)').text().toLowerCase();
-                    const category = row.find('td:nth-child(5)').text().toLowerCase();
-                    const categoryId = row.find('td:nth-child(5)').data('category-id');
+                    const category = row.find('td:nth-child(5) .badge').data('category-id');
 
-                    const matchesSearch = searchText === '' || 
+                    const matchesSearch = !searchText || 
                         name.includes(searchText) || 
-                        description.includes(searchText) || 
-                        category.includes(searchText);
+                        description.includes(searchText);
 
-                    const matchesCategory = categoryValue === '' || 
-                        categoryId === categoryValue;
+                    const matchesCategory = !categoryValue || 
+                        category === parseInt(categoryValue);
 
                     if (matchesSearch && matchesCategory) {
-                        row.show();
+                        row.fadeIn(300);
                         hasResults = true;
-                        
-                        // Highlight matching text if there's a search term
-                        if (searchText) {
-                            row.find('td:nth-child(3)').html(highlightText(name, searchText));
-                            row.find('td:nth-child(4)').html(highlightText(description, searchText));
-                            row.find('td:nth-child(5) .badge').html(highlightText(category, searchText));
-                        }
                     } else {
-                        row.hide();
+                        row.fadeOut(300);
                     }
                 });
 
@@ -1166,11 +1152,15 @@ unset($_SESSION['error_message']);
                 if (!hasResults) {
                     if ($('#noResults').length === 0) {
                         $('#startupTable tbody').append(
-                            '<tr id="noResults"><td colspan="6" class="text-center">Aucun résultat trouvé</td></tr>'
+                            '<tr id="noResults"><td colspan="6" class="text-center py-4">' +
+                            '<div class="alert alert-info mb-0">Aucun résultat trouvé</div></td></tr>'
                         );
+                        $('#noResults').hide().fadeIn(300);
                     }
                 } else {
-                    $('#noResults').remove();
+                    $('#noResults').fadeOut(300, function() {
+                        $(this).remove();
+                    });
                 }
             }
 
@@ -1186,12 +1176,15 @@ unset($_SESSION['error_message']);
             // Category filter handler
             categoryFilter.on('change', filterTable);
 
-            // Clear search button handler
-            clearSearch.on('click', function() {
+            // Clear search and category filter
+            $('#refreshBtn').on('click', function() {
                 searchInput.val('');
-                $(this).hide();
+                categoryFilter.val('');
                 filterTable();
             });
+
+            // Initialize filtering
+            filterTable();
 
             // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();
@@ -1392,6 +1385,50 @@ unset($_SESSION['error_message']);
 
         // Refresh analytics every 5 minutes
         setInterval(loadAnalytics, 300000);
+
+        // Add this JavaScript for recommendations
+        function loadSimilarStartups(startupId) {
+            fetch(`../../Controller/RecommendationController.php?action=similar&startup_id=${startupId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data.length > 0) {
+                        const html = data.data.map(startup => `
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <img src="${startup.image_path || '/startupConnect-website/uploads/defaults/default-startup.png'}" 
+                                         class="card-img-top" alt="${startup.name}"
+                                         style="height: 120px; object-fit: cover;">
+                                    <div class="card-body">
+                                        <h6 class="card-title">${startup.name}</h6>
+                                        <p class="card-text small">${startup.description.substring(0, 50)}...</p>
+                                        <span class="badge bg-info">${startup.matching_tags} tags similaires</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                        document.getElementById('similarStartups').innerHTML = html;
+                    } else {
+                        document.getElementById('similarStartups').innerHTML = 
+                            '<div class="col-12 text-center">Aucune startup similaire trouvée</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('similarStartups').innerHTML = 
+                        '<div class="col-12 text-center text-danger">Erreur lors du chargement des recommandations</div>';
+                });
+        }
+
+        // Update your existing view startup function
+        $(".view-startup").click(function(e) {
+            e.preventDefault();
+            const startupId = $(this).data("id");
+            
+            // Existing view logic...
+            
+            // Add this line to load recommendations
+            loadSimilarStartups(startupId);
+        });
     </script>
 </body>
 </html>

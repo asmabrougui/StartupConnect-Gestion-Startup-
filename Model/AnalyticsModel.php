@@ -8,37 +8,14 @@ class AnalyticsModel {
         $this->db = Config::GetConnexion();
     }
 
-    public function getStartupMetrics($startupId) {
-        try {
-            $sql = "SELECT 
-                        COUNT(DISTINCT sr.id) as total_ratings,
-                        AVG(sr.rating) as average_rating,
-                        COUNT(DISTINCT i.id) as total_investments,
-                        SUM(i.amount) as total_investment_amount,
-                        (SELECT COUNT(*) FROM startup_views WHERE startup_id = :startup_id) as view_count
-                    FROM startup s
-                    LEFT JOIN startup_ratings sr ON s.id = sr.startup_id
-                    LEFT JOIN investments i ON s.id = i.startup_id
-                    WHERE s.id = :startup_id
-                    GROUP BY s.id";
-            
-            $query = $this->db->prepare($sql);
-            $query->execute(['startup_id' => $startupId]);
-            return $query->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-            error_log("Error in getStartupMetrics: " . $e->getMessage());
-            return null;
-        }
-    }
-
     public function getTrendingStartups($limit = 5) {
         try {
             $sql = "SELECT 
                         s.*, 
                         c.name as category_name,
-                        COUNT(DISTINCT sr.id) as rating_count,
+                        COUNT(sr.id) as rating_count,
                         AVG(sr.rating) as avg_rating,
-                        COUNT(DISTINCT sv.id) as view_count
+                        COUNT(sv.id) as view_count
                     FROM startup s
                     LEFT JOIN categorie c ON s.category_id = c.id
                     LEFT JOIN startup_ratings sr ON s.id = sr.startup_id
