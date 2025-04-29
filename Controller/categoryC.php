@@ -37,7 +37,20 @@ class CategoryController {
                             if (empty($_POST['name'])) {
                                 throw new Exception("Le nom de la catégorie est requis");
                             }
-                            if ($this->model->addCategory($_POST['name'])) {
+                            
+                            // Add validation for category name
+                            $categoryName = trim($_POST['name']);
+                            if (strlen($categoryName) > 10) {
+                                throw new Exception("Le nom de la catégorie ne doit pas dépasser 10 caractères");
+                            }
+                            if (is_numeric($categoryName)) {
+                                throw new Exception("Le nom de la catégorie ne peut pas être un nombre");
+                            }
+                            if (preg_match('/\d/', $categoryName)) {
+                                throw new Exception("Le nom de la catégorie ne peut pas contenir de chiffres");
+                            }
+                            
+                            if ($this->model->addCategory($categoryName)) {
                                 $response = ['success' => true, 'message' => 'Catégorie ajoutée avec succès'];
                             }
                             break;

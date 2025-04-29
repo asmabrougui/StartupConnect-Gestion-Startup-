@@ -554,5 +554,147 @@ function getCategoryIcon($categoryId) {
             attachCategoryListeners();
         });
     </script>
+
+    <!-- Rating Modal -->
+    <div class="modal fade" id="ratingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Noter la Startup</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="ratingForm">
+                        <input type="hidden" id="startup_id" name="startup_id">
+                        <div class="rating-input mb-3">
+                            <label>Votre note:</label>
+                            <div class="stars">
+                                <i class="far fa-star" data-value="1"></i>
+                                <i class="far fa-star" data-value="2"></i>
+                                <i class="far fa-star" data-value="3"></i>
+                                <i class="far fa-star" data-value="4"></i>
+                                <i class="far fa-star" data-value="5"></i>
+                            </div>
+                            <input type="hidden" name="rating" id="rating" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Commentaire:</label>
+                            <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="submitRating">Envoyer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            document.querySelectorAll('.startup-card').forEach(card => {
+                const name = card.querySelector('.card-title').textContent.toLowerCase();
+                const description = card.querySelector('.card-text').textContent.toLowerCase();
+                const category = card.querySelector('.badge').textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || description.includes(searchTerm) || category.includes(searchTerm)) {
+                    card.style.display = '';
+                    card.classList.remove('animate__fadeOut');
+                    card.classList.add('animate__fadeIn');
+                } else {
+                    card.classList.remove('animate__fadeIn');
+                    card.classList.add('animate__fadeOut');
+                    setTimeout(() => card.style.display = 'none', 500);
+                }
+            });
+        });
+
+        // Rating functionality
+        function rateStartup(startupId) {
+            document.getElementById('startup_id').value = startupId;
+            document.getElementById('rating').value = '';
+            document.getElementById('comment').value = '';
+            document.querySelectorAll('.rating-input .stars i').forEach(star => {
+                star.className = 'far fa-star';
+            });
+            new bootstrap.Modal(document.getElementById('ratingModal')).show();
+        }
+
+        // Star rating handling
+        document.querySelectorAll('.rating-input .stars i').forEach(star => {
+            star.addEventListener('mouseover', function() {
+                const value = this.dataset.value;
+                document.querySelectorAll('.rating-input .stars i').forEach(s => {
+                    s.className = parseInt(s.dataset.value) <= parseInt(value) ? 'fas fa-star' : 'far fa-star';
+                });
+            });
+
+            star.addEventListener('click', function() {
+                document.getElementById('rating').value = this.dataset.value;
+                document.querySelectorAll('.rating-input .stars i').forEach(s => {
+                    s.classList.remove('active');
+                    if (parseInt(s.dataset.value) <= parseInt(this.dataset.value)) {
+                        s.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        // Submit rating
+        document.getElementById('submitRating').addEventListener('click', function() {
+            const formData = new FormData();
+            formData.append('action', 'rate_startup');
+            formData.append('startup_id', document.getElementById('startup_id').value);
+            formData.append('rating', document.getElementById('rating').value);
+            formData.append('comment', document.getElementById('comment').value);
+
+            fetch('../../Controller/startupC.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and show success message
+                    bootstrap.Modal.getInstance(document.getElementById('ratingModal')).hide();
+                    location.reload(); // Reload to show updated rating
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to submit rating'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to submit rating');
+            });
+        });
+
+        // Rating filter handling
+        document.getElementById('ratingFilter').addEventListener('change', function() {
+            const selectedRating = this.value;
+            document.querySelectorAll('.startup-card').forEach(card => {
+                const ratingValue = parseFloat(card.querySelector('.rating-value').textContent);
+                let show = true;
+
+                if (selectedRating === 'most') {
+                    show = ratingValue >= 4.5;
+                } else if (selectedRating) {
+                    show = ratingValue >= parseInt(selectedRating);
+                }
+
+                if (show) {
+                    card.style.display = '';
+                    card.classList.remove('animate__fadeOut');
+                    card.classList.add('animate__fadeIn');
+                } else {
+                    card.classList.remove('animate__fadeIn');
+                    card.classList.add('animate__fadeOut');
+                    setTimeout(() => card.style.display = 'none', 500);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
