@@ -601,9 +601,12 @@ unset($_SESSION['error_message']);
                 </div>
                 <div class="col-lg-6 text-end">
                     <div class="btn-group" role="group">
+                        <button class="btn btn-info" id="categoryBtn" data-bs-toggle="modal" data-bs-target="#categoryModal">
+                            <i class="fas fa-tags me-2"></i>Category
+                        </button>
                         <button class="btn btn-light" id="refreshBtn">
                             <i class="fas fa-sync-alt me-2"></i>Actualiser
-                        </button>
+
                         <button class="btn btn-success ms-2" id="exportPDFBtn">
                             <i class="fas fa-file-pdf me-2"></i>Exporter PDF
                         </button>
@@ -835,6 +838,32 @@ unset($_SESSION['error_message']);
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                             <button type="submit" name="update_startup" class="btn btn-primary">
                                 <i class="fas fa-save me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Gestion des Catégories</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="categoriesList" class="list-group mb-3">
+                        <!-- Categories will be loaded here -->
+                    </div>
+                    <hr>
+                    <form id="addCategoryForm" class="mt-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="newCategoryName" placeholder="Nouvelle catégorie" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Ajouter
                             </button>
                         </div>
                     </form>
@@ -1429,6 +1458,128 @@ unset($_SESSION['error_message']);
             // Add this line to load recommendations
             loadSimilarStartups(startupId);
         });
+
+        // Update the editCategory function with a simple implementation
+        function editCategory(id, name) {
+            Swal.fire({
+                title: 'Modifier la catégorie',
+                input: 'text',
+                inputValue: name,
+                inputPlaceholder: 'Nom de la catégorie',
+                showCancelButton: true,
+                confirmButtonText: 'Modifier',
+                cancelButtonText: 'Annuler',
+                showCloseButton: true,
+                focusConfirm: false,
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Le nom de la catégorie ne peut pas être vide';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const formData = new FormData();
+                    formData.append('action', 'update');
+                    formData.append('id', id);
+                    formData.append('name', result.value.trim());
+
+                    fetch('../../Controller/categoryC.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Refresh both the categories list and all dropdowns
+                            refreshCategories();
+                            showToast('success', 'Catégorie modifiée avec succès');
+                        } else {
+                            throw new Error(data.message || 'Erreur lors de la modification');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('error', error.message || 'Erreur lors de la modification');
+                    });
+                }
+            });
+        }
+
+        // Add a function to refresh all category dropdowns and lists
+        function refreshCategories() {
+            fetch('../../Controller/categoryC.php?action=getAll')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        // Update category dropdowns
+                        const dropdowns = document.querySelectorAll('select[id$="category_id"], #categoryFilter');
+                        dropdowns.forEach(dropdown => {
+                            if (dropdown) {
+                                const currentValue = dropdown.value;
+                                dropdown.innerHTML = `
+                                    <option value="">Toutes les catégories</option>
+                                    ${data.data.map(category => `
+                                        <option value="${category.id}" ${currentValue == category.id ? 'selected' : ''}>
+                                            ${category.name}
+                                        </option>
+                                    `).join('')}
+                                `;
+                            }
+                        });
+
+                        // Update categories list in modal
+                        const categoriesList = document.getElementById('categoriesList');
+                        if (categoriesList) {
+                            categoriesList.innerHTML = data.data.map(category => `
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>${category.name}</span>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-warning" onclick="editCategory(${category.id}, '${category.name.replace(/'/g, "\\'")}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger ms-1" onclick="deleteCategory(${category.id})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('') || '<div class="alert alert-info">Aucune catégorie trouvée</div>';
+                        }
+                    }
+                });
+        }
+
+        // Update add category form to use refreshCategories
+        document.getElementById('addCategoryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('newCategoryName');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            const formData = new FormData();
+            formData.append('action', 'add');
+            formData.append('name', name);
+
+            fetch('../../Controller/categoryC.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    nameInput.value = '';
+                    refreshCategories();
+                    showToast('success', 'Catégorie ajoutée avec succès');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'ajout');
+                }
+            })
+            .catch(error => {
+                showToast('error', error.message || 'Erreur lors de l\'ajout');
+            });
+        });
+
+        // Load categories on page load and modal open
+        document.addEventListener('DOMContentLoaded', refreshCategories);
+        document.getElementById('categoryModal').addEventListener('show.bs.modal', refreshCategories);
     </script>
 </body>
 </html>
