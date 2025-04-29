@@ -5,9 +5,13 @@ ini_set('display_errors', 1);
 session_start();
 require_once '../../config.php';
 require_once '../../Controller/startupC.php';
+require_once '../../Model/category.php';
 
 $controller = new StartupController();
 $startups = $controller->getAllStartups();
+
+$categoryModel = new CategoryModel();
+$categories = $categoryModel->getAllCategories();
 
 // Message handling
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
@@ -16,6 +20,18 @@ $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] 
 // Clear the messages
 unset($_SESSION['success_message']);
 unset($_SESSION['error_message']);
+
+// Function to get category icon
+function getCategoryIcon($categoryId) {
+    $icons = [
+        1 => 'fas fa-microchip',
+        2 => 'fas fa-heartbeat',
+        3 => 'fas fa-graduation-cap',
+        4 => 'fas fa-chart-line',
+        5 => 'fas fa-shopping-cart'
+    ];
+    return $icons[$categoryId] ?? 'fas fa-folder'; // Default icon if no match
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -326,25 +342,20 @@ unset($_SESSION['error_message']);
             <div class="col-md-3">
                 <div class="sidebar">
                     <h4>Catégories</h4>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="category-filter" data-category="0">
-                            <i class="fas fa-th category-icon"></i>Toutes les catégories
-                        </a></li>
-                        <li><a href="#" class="category-filter" data-category="1">
-                            <i class="fas fa-microchip category-icon"></i>Technologie
-                        </a></li>
-                        <li><a href="#" class="category-filter" data-category="2">
-                            <i class="fas fa-heartbeat category-icon"></i>Santé
-                        </a></li>
-                        <li><a href="#" class="category-filter" data-category="3">
-                            <i class="fas fa-graduation-cap category-icon"></i>Éducation
-                        </a></li>
-                        <li><a href="#" class="category-filter" data-category="4">
-                            <i class="fas fa-chart-line category-icon"></i>Finance
-                        </a></li>
-                        <li><a href="#" class="category-filter" data-category="5">
-                            <i class="fas fa-shopping-cart category-icon"></i>E-commerce
-                        </a></li>
+                    <ul class="list-unstyled" id="categoryList">
+                        <li>
+                            <a href="#" class="category-filter active" data-category="0">
+                                <i class="fas fa-th category-icon"></i>Toutes les catégories
+                            </a>
+                        </li>
+                        <?php foreach ($categories as $category): ?>
+                            <li>
+                                <a href="#" class="category-filter" data-category="<?php echo htmlspecialchars($category['id']); ?>">
+                                    <i class="<?php echo getCategoryIcon($category['id']); ?> category-icon"></i>
+                                    <?php echo htmlspecialchars($category['name']); ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
                     </ul>
                 </div>
             </div>
@@ -435,104 +446,6 @@ unset($_SESSION['error_message']);
                     <?php endif; ?>
                 </div>
 
-     
-    <!-- View Startup Modal -->
-    <div class="modal fade" id="viewStartupModal" tabindex="-1" aria-labelledby="viewStartupModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="viewStartupModalLabel">Détails de la Startup</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="viewStartupContent">
-                    <!-- Content will be loaded dynamically -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Startup Modal -->
-    <div class="modal fade" id="editStartupModal" tabindex="-1" aria-labelledby="editStartupModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editStartupModalLabel">Modifier la Startup</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form action="../../Controller/startupC.php" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" id="editStartupId" name="startup_id">
-                        <div class="mb-3">
-                            <label for="editName" class="form-label">Nom</label>
-                            <input type="text" class="form-control" id="editName" name="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="editDescription" name="description" rows="4" required></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editCategory" class="form-label">Catégorie</label>
-                            <select class="form-select" id="editCategory" name="category_id" required>
-                                <option value="1">Technologie</option>
-                                <option value="2">Santé</option>
-                                <option value="3">Éducation</option>
-                                <option value="4">Finance</option>
-                                <option value="5">E-commerce</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editImage" class="form-label">Image</label>
-                            <input type="file" class="form-control" id="editImage" name="image" accept="image/*">
-                            <small class="text-muted">Laissez vide pour conserver l'image actuelle</small>
-                        </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                            <button type="submit" name="update_startup" class="btn btn-primary">Enregistrer</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Rating Modal -->
-    <div class="modal fade" id="ratingModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Évaluer cette Startup</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="ratingForm">
-                        <input type="hidden" id="startup_id" name="startup_id">
-                        <div class="rating-input text-center mb-4">
-                            <div class="stars">
-                                <i class="far fa-star" data-rating="1"></i>
-                                <i class="far fa-star" data-rating="2"></i>
-                                <i class="far fa-star" data-rating="3"></i>
-                                <i class="far fa-star" data-rating="4"></i>
-                                <i class="far fa-star" data-rating="5"></i>
-                            </div>
-                            <input type="hidden" name="rating" id="selected_rating" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="comment" class="form-label">Commentaire (optionnel)</label>
-                            <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
-                        </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                            <button type="submit" class="btn btn-primary">Soumettre</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -545,286 +458,100 @@ unset($_SESSION['error_message']);
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
     <script>
-        // Make highlightStars function globally available
-        function highlightStars(rating) {
-            $('.rating-input .stars i').each(function() {
-                const value = $(this).data('rating');
-                if (value <= rating) {
-                    $(this).removeClass('far').addClass('fas');
-                } else {
-                    $(this).removeClass('fas').addClass('far');
-                }
-            });
-        }
-
-        // Function to open rating modal - also make it global
-        function rateStartup(id) {
-            $('#startup_id').val(id);
-            $('#selected_rating').val('');
-            highlightStars(0);
-            $('#comment').val('');
-            $('#ratingModal').modal('show');
-        }
-
-        $(document).ready(function() {
-            const searchInput = $('#searchInput');
-            const ratingFilter = $('#ratingFilter');
-
-            // Function to sort startups by rating
-            function sortByRating() {
-                const startupCards = $('.startup-card').get();
-                startupCards.sort((a, b) => {
-                    const ratingA = parseFloat($(a).find('.rating-value').text());
-                    const ratingB = parseFloat($(b).find('.rating-value').text());
-                    return ratingB - ratingA;
-                });
-                $('#startupGallery').append(startupCards);
-            }
-
-            // Enhanced filter function
-            function filterStartups() {
-                const searchValue = searchInput.val().toLowerCase();
-                const ratingValue = ratingFilter.val();
-
-                $('.startup-card').each(function() {
-                    const card = $(this);
-                    const cardText = card.text().toLowerCase();
-                    const cardRating = parseFloat(card.find('.rating-value').text());
-
-                    // Search filter
-                    const matchSearch = !searchValue || cardText.indexOf(searchValue) > -1;
-
-                    // Rating filter
-                    let matchRating = true;
-                    if (ratingValue && ratingValue !== 'most') {
-                        matchRating = cardRating >= parseInt(ratingValue);
-                    }
-
-                    if (matchSearch && matchRating) {
-                        card.removeClass('animate__fadeOut').addClass('animate__fadeIn');
-                        setTimeout(() => card.show(), 200);
-                    } else {
-                        card.removeClass('animate__fadeIn').addClass('animate__fadeOut');
-                        setTimeout(() => card.hide(), 200);
-                    }
-                });
-
-                // Sort by rating if "most rated" is selected
-                if (ratingValue === 'most') {
-                    sortByRating();
-                }
-            }
-
-            // Event listeners
-            searchInput.on('input', filterStartups);
-            ratingFilter.on('change', function() {
-                if ($(this).val() === 'most') {
-                    sortByRating();
-                }
-                filterStartups();
-            });
-
-            // Initial sorting
-            sortByRating();
-
-            // Add animation classes to cards
-            $(".startup-card").addClass("animate__animated animate__fadeIn");
-
-            // View startup details
-            $(".view-startup").click(function(e) {
-                e.preventDefault();
-                var startupId = $(this).data("id");
-                
-                // Fetch startup details including comments
-                fetch(`../../Controller/startupC.php?action=get_startup_details&id=${startupId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const startup = data.startup;
-                        const comments = data.ratings || [];
-                        
-                        let commentsHtml = '<div class="comments-section mt-4"><h5>Commentaires</h5>';
-                        if (comments.length > 0) {
-                            commentsHtml += '<div class="list-group">';
-                            comments.forEach(comment => {
-                                const date = new Date(comment.created_at).toLocaleDateString();
-                                commentsHtml += `
-                                    <div class="list-group-item">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div class="rating-display">
-                                                ${generateStars(comment.rating)}
-                                            </div>
-                                            <small class="text-muted">${date}</small>
-                                        </div>
-                                        ${comment.comment ? `<p class="mb-1 mt-2">${comment.comment}</p>` : ''}
-                                    </div>
-                                `;
-                            });
-                            commentsHtml += '</div>';
-                        } else {
-                            commentsHtml += '<p class="text-muted">Aucun commentaire pour le moment</p>';
-                        }
-                        commentsHtml += '</div>';
-
-                        var content = `
-                            <div class="text-center mb-3">
-                                <img src="${startup.image_path}" alt="${startup.name}" 
-                                     style="max-width: 100%; max-height: 300px; object-fit: contain;">
-                            </div>
-                            <h4>${startup.name}</h4>
-                            <p><strong>Catégorie:</strong> <span class="badge bg-info">${startup.category_name}</span></p>
-                            <p>${startup.description}</p>
-                            ${commentsHtml}
-                        `;
-                        
-                        $("#viewStartupContent").html(content);
-                        $("#viewStartupModal").modal("show");
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Erreur lors du chargement des détails');
-                    });
-            });
-
-            function generateStars(rating) {
-                let starsHtml = '';
-                for (let i = 1; i <= 5; i++) {
-                    if (i <= rating) {
-                        starsHtml += '<i class="fas fa-star text-warning"></i>';
-                    } else if (i - 0.5 <= rating) {
-                        starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
-                    } else {
-                        starsHtml += '<i class="far fa-star text-warning"></i>';
-                    }
-                }
-                return starsHtml;
-            }
-
-            // Rating stars interaction
-            $('.rating-input .stars i').hover(
-                function() {
-                    const rating = $(this).data('rating');
-                    highlightStars(rating);
-                },
-                function() {
-                    const currentRating = $('#selected_rating').val();
-                    highlightStars(currentRating);
-                }
-            ).click(function() {
-                const rating = $(this).data('rating');
-                $('#selected_rating').val(rating);
-                highlightStars(rating);
-            });
-
-            // Rating form submission
-            $('#ratingForm').on('submit', function(e) {
-                e.preventDefault();
-                const rating = $('#selected_rating').val();
-                
-                if (!rating) {
-                    alert('Veuillez sélectionner une note');
-                    return;
-                }
-
-                const formData = new FormData(this);
-                formData.append('action', 'rate_startup');
-
-                fetch('../../Controller/startupC.php', {
-                    method: 'POST',
-                    body: formData
-                })
+        // Add this to your existing JavaScript
+        function refreshCategories() {
+            fetch('../../Controller/categoryC.php?action=getAll')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        $('#ratingModal').modal('hide');
-                        location.reload(); // Refresh to show new rating
-                    } else {
-                        throw new Error(data.message || 'Une erreur est survenue');
+                        const categoryList = document.getElementById('categoryList');
+                        let html = `
+                            <li>
+                                <a href="#" class="category-filter active" data-category="0">
+                                    <i class="fas fa-th category-icon"></i>Toutes les catégories
+                                </a>
+                            </li>
+                        `;
+                        
+                        data.data.forEach(category => {
+                            html += `
+                                <li>
+                                    <a href="#" class="category-filter" data-category="${category.id}">
+                                        <i class="${getCategoryIconClass(category.id)} category-icon"></i>
+                                        ${category.name}
+                                    </a>
+                                </li>
+                            `;
+                        });
+                        categoryList.innerHTML = html;
+                        attachCategoryListeners();
                     }
                 })
-                .catch(error => {
-                    alert(error.message);
-                });
-            });
+                .catch(error => console.error('Error:', error));
+        }
 
-            // Load recommendations for the first startup or a featured startup
-            function loadRecommendations(startupId) {
-                fetch(`../../Controller/RecommendationController.php?action=similar&startup_id=${startupId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.data.length > 0) {
-                            const html = data.data.map(startup => `
-                                <div class="col-md-4 mb-4">
-                                    <div class="card h-100">
-                                        <img src="${startup.image_path || '/startupConnect-website/uploads/defaults/default-startup.png'}" 
-                                             class="card-img-top" alt="${startup.name}"
-                                             style="height: 200px; object-fit: cover;">
-                                        <div class="card-body">
-                                            <h5 class="card-title">${startup.name}</h5>
-                                            <p class="card-text">${startup.description.substring(0, 100)}...</p>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="badge bg-info">${startup.matching_tags} tags en commun</span>
-                                                <button class="btn btn-primary btn-sm" onclick="viewStartup(${startup.id})">
-                                                    Voir plus
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('');
-                            document.getElementById('recommendedStartups').innerHTML = html;
+        function getCategoryIconClass(categoryId) {
+            const icons = {
+                1: 'fas fa-microchip',
+                2: 'fas fa-heartbeat',
+                3: 'fas fa-graduation-cap',
+                4: 'fas fa-chart-line',
+                5: 'fas fa-shopping-cart'
+            };
+            return icons[categoryId] || 'fas fa-folder';
+        }
+
+        function attachCategoryListeners() {
+            document.querySelectorAll('.category-filter').forEach(filter => {
+                filter.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const selectedCategory = this.dataset.category;
+                    
+                    // Update active state
+                    document.querySelectorAll('.category-filter').forEach(f => f.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Filter startups with animation
+                    document.querySelectorAll('.startup-card').forEach(card => {
+                        const cardCategory = card.dataset.category;
+                        if (selectedCategory === '0' || cardCategory === selectedCategory) {
+                            card.classList.remove('animate__fadeOut');
+                            card.classList.add('animate__fadeIn');
+                            card.style.display = '';
                         } else {
-                            document.getElementById('recommendedStartups').innerHTML = 
-                                '<div class="col-12 text-center">Aucune recommandation disponible</div>';
+                            card.classList.remove('animate__fadeIn');
+                            card.classList.add('animate__fadeOut');
+                            setTimeout(() => {
+                                card.style.display = 'none';
+                            }, 500);
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        document.getElementById('recommendedStartups').innerHTML = 
-                            '<div class="col-12 text-center text-danger">Erreur lors du chargement des recommandations</div>';
                     });
-            }
 
-            document.addEventListener('DOMContentLoaded', () => {
-                loadRecommendations(1); // You can change this to any default startup ID
-            });
-
-            // Add this new code for category filtering
-            $('.category-filter').click(function(e) {
-                e.preventDefault();
-                const selectedCategory = $(this).data('category');
-                
-                // Update active state
-                $('.category-filter').removeClass('active');
-                $(this).addClass('active');
-                
-                // Filter startups
-                $('.startup-card').each(function() {
-                    const cardCategory = $(this).data('category');
-                    if (selectedCategory === 0 || cardCategory === selectedCategory) {
-                        $(this).removeClass('animate__fadeOut')
-                               .addClass('animate__fadeIn')
-                               .show();
-                    } else {
-                        $(this).removeClass('animate__fadeIn')
-                               .addClass('animate__fadeOut')
-                               .hide();
+                    // Show/hide no results message
+                    const visibleCards = document.querySelectorAll('.startup-card:not([style*="display: none"])').length;
+                    const noResults = document.getElementById('noResults');
+                    
+                    if (visibleCards === 0) {
+                        if (!noResults) {
+                            const message = document.createElement('div');
+                            message.id = 'noResults';
+                            message.className = 'col-12 text-center mt-4';
+                            message.innerHTML = '<p>Aucune startup trouvée dans cette catégorie</p>';
+                            document.getElementById('startupGallery').appendChild(message);
+                        }
+                    } else if (noResults) {
+                        noResults.remove();
                     }
                 });
-
-                // Show "No results" message if needed
-                const visibleCards = $('.startup-card:visible').length;
-                if (visibleCards === 0) {
-                    if ($('#noResults').length === 0) {
-                        $('#startupGallery').append(
-                            '<div id="noResults" class="col-12 text-center">' +
-                            '<p>Aucune startup trouvée dans cette catégorie</p>' +
-                            '</div>'
-                        );
-                    }
-                } else {
-                    $('#noResults').remove();
-                }
             });
+        }
+
+        // Refresh categories periodically (every 30 seconds)
+        setInterval(refreshCategories, 30000);
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', function() {
+            attachCategoryListeners();
         });
     </script>
 </body>

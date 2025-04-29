@@ -44,12 +44,39 @@ class CategoryModel {
 
     public function deleteCategory($id) {
         try {
-            $sql = "DELETE FROM categorie WHERE id = :id";
-            $query = $this->db->prepare($sql);
-            return $query->execute(['id' => $id]);
+            // Start transaction
+            $this->db->beginTransaction();
+            
+            // First delete related startups
+            $sqlStartups = "DELETE FROM startup WHERE category_id = :id";
+            $queryStartups = $this->db->prepare($sqlStartups);
+            $queryStartups->execute(['id' => $id]);
+            
+            // Then delete the category
+            $sqlCategory = "DELETE FROM categorie WHERE id = :id";
+            $queryCategory = $this->db->prepare($sqlCategory);
+            $result = $queryCategory->execute(['id' => $id]);
+            
+            // Commit transaction
+            $this->db->commit();
+            return $result;
         } catch (Exception $e) {
+            // Rollback on error
+            $this->db->rollBack();
             error_log("Error in deleteCategory: " . $e->getMessage());
             return false;
+        }
+    }
+
+    public function getCategoryById($id) {
+        try {
+            $sql = "SELECT * FROM categorie WHERE id = :id";
+            $query = $this->db->prepare($sql);
+            $query->execute(['id' => $id]);
+            return $query->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error in getCategoryById: " . $e->getMessage());
+            return null;
         }
     }
 }

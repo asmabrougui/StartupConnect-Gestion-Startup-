@@ -14,11 +14,16 @@ class CategoryController {
 
     public function handleRequest() {
         try {
-            if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
-                if ($_GET['action'] === 'getAll') {
+            header('Content-Type: application/json');
+            
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                if (isset($_GET['action']) && $_GET['action'] === 'getAll') {
                     $categories = $this->getAllCategories();
-                    header('Content-Type: application/json');
-                    echo json_encode(['success' => true, 'data' => $categories]);
+                    echo json_encode([
+                        'success' => true,
+                        'data' => $categories,
+                        'icons' => $this->getCategoryIcons()
+                    ]);
                     exit;
                 }
             }
@@ -57,19 +62,29 @@ class CategoryController {
                     }
                 }
 
-                header('Content-Type: application/json');
                 echo json_encode($response);
                 exit;
             }
         } catch (Exception $e) {
-            header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
             exit;
         }
     }
+
+    private function getCategoryIcons() {
+        return [
+            1 => 'fas fa-microchip',
+            2 => 'fas fa-heartbeat',
+            3 => 'fas fa-graduation-cap',
+            4 => 'fas fa-chart-line',
+            5 => 'fas fa-shopping-cart'
+        ];
+    }
 }
 
-// Initialize controller and handle requests
-$controller = new CategoryController();
-$controller->handleRequest();
+// Only initialize and handle requests if this file is accessed directly
+if (basename($_SERVER['PHP_SELF']) === basename(__FILE__)) {
+    $controller = new CategoryController();
+    $controller->handleRequest();
+}
 ?>

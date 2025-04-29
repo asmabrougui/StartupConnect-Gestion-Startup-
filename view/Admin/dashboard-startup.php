@@ -1,10 +1,16 @@
 <?php
 session_start();
 require_once '../../Controller/startupC.php';
+require_once '../../Controller/categoryC.php'; // Add this line
+require_once '../../Model/category.php';  // Add this line
 
-// Initialiser le contrôleur et récupérer les startups
+// Initialize controllers
 $controller = new StartupController();
+$categoryController = new CategoryController();
+
+// Get data
 $startups = $controller->getAllStartups();
+$categories = $categoryController->getAllCategories();
 
 // Messages de notification
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
@@ -13,6 +19,18 @@ $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] 
 // Nettoyer les messages de session
 unset($_SESSION['success_message']);
 unset($_SESSION['error_message']);
+
+// Function to get category icon
+function getCategoryIcon($categoryId) {
+    $icons = [
+        1 => 'fas fa-microchip',
+        2 => 'fas fa-heartbeat',
+        3 => 'fas fa-graduation-cap',
+        4 => 'fas fa-chart-line',
+        5 => 'fas fa-shopping-cart'
+    ];
+    return $icons[$categoryId] ?? 'fas fa-folder';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -677,11 +695,11 @@ unset($_SESSION['error_message']);
             <div class="col-md-4">
                 <select class="form-select" id="categoryFilter">
                     <option value="">Toutes les catégories</option>
-                    <option value="1">Technologie</option>
-                    <option value="2">Santé</option>
-                    <option value="3">Éducation</option>
-                    <option value="4">Finance</option>
-                    <option value="5">E-commerce</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?php echo htmlspecialchars($category['id']); ?>">
+                            <?php echo htmlspecialchars($category['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
         </div>
@@ -814,11 +832,12 @@ unset($_SESSION['error_message']);
                             <label for="category_id" class="form-label">Catégorie</label>
                             <select class="form-select" id="category_id" name="category_id" required>
                                 <option value="" disabled selected>Sélectionnez une catégorie</option>
-                                <option value="1">Technologie</option>
-                                <option value="2">Santé</option>
-                                <option value="3">Éducation</option>
-                                <option value="4">Finance</option>
-                                <option value="5">E-commerce</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo htmlspecialchars($category['id']); ?>">
+                                        <i class="<?php echo getCategoryIcon($category['id']); ?> category-icon"></i>
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-4">
@@ -860,11 +879,13 @@ unset($_SESSION['error_message']);
                         <div class="mb-4">
                             <label for="edit_category_id" class="form-label">Catégorie</label>
                             <select class="form-select" id="edit_category_id" name="category_id" required>
-                                <option value="1">Technologie</option>
-                                <option value="2">Santé</option>
-                                <option value="3">Éducation</option>
-                                <option value="4">Finance</option>
-                                <option value="5">E-commerce</option>
+                                <option value="" disabled>Sélectionnez une catégorie</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo htmlspecialchars($category['id']); ?>">
+                                        <i class="<?php echo getCategoryIcon($category['id']); ?> category-icon"></i>
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-4">
@@ -1683,6 +1704,72 @@ unset($_SESSION['error_message']);
                 timer: 3000
             });
         }
+
+        function updateCategoryDropdowns() {
+            fetch('../../Controller/categoryC.php?action=getAll')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const filterSelect = document.getElementById('categoryFilter');
+                        const addSelect = document.getElementById('category_id');
+                        const editSelect = document.getElementById('edit_category_id');
+                        
+                        // Store current selections
+                        const filterValue = filterSelect.value;
+                        const addValue = addSelect.value;
+                        const editValue = editSelect ? editSelect.value : '';
+                        
+                        // Build options HTML
+                        let optionsHtml = '<option value="">Toutes les catégories</option>';
+                        let addOptionsHtml = '<option value="" disabled selected>Sélectionnez une catégorie</option>';
+                        
+                        data.data.forEach(category => {
+                            const icon = getCategoryIconClass(category.id);
+                            const option = `
+                                <option value="${category.id}">
+                                    <i class="${icon} category-icon"></i> ${category.name}
+                                </option>`;
+                            optionsHtml += option;
+                            addOptionsHtml += option;
+                        });
+                        
+                        // Update dropdowns
+                        filterSelect.innerHTML = optionsHtml;
+                        addSelect.innerHTML = addOptionsHtml;
+                        if (editSelect) {
+                            editSelect.innerHTML = addOptionsHtml;
+                        }
+                        
+                        // Restore selected values
+                        filterSelect.value = filterValue;
+                        addSelect.value = addValue;
+                        if (editSelect) editSelect.value = editValue;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Add this helper function if not already present
+        function getCategoryIconClass(categoryId) {
+            const icons = {
+                1: 'fas fa-microchip',
+                2: 'fas fa-heartbeat',
+                3: 'fas fa-graduation-cap',
+                4: 'fas fa-chart-line',
+                5: 'fas fa-shopping-cart'
+            };
+            return icons[categoryId] || 'fas fa-folder';
+        }
+
+        // Add event listeners for real-time updates
+        document.getElementById('addStartupModal').addEventListener('show.bs.modal', updateCategoryDropdowns);
+        document.getElementById('editStartupModal').addEventListener('show.bs.modal', updateCategoryDropdowns);
+
+        // Auto refresh categories every 30 seconds
+        setInterval(updateCategoryDropdowns, 30000);
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', updateCategoryDropdowns);
     </script>
 </body>
 </html>
