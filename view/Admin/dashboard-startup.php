@@ -1526,26 +1526,40 @@ function getCategoryIcon($categoryId) {
 
         // Replace the category management functions with simpler versions
         function editCategory(id, name) {
+            const modalContent = `
+                <div class="mb-3">
+                    <input 
+                        type="text" 
+                        id="swal-input1" 
+                        class="form-control"
+                        value="${name}"
+                        style="margin: 1em auto; padding: 10px;"
+                    >
+                </div>
+            `;
+
             Swal.fire({
                 title: 'Modifier la catégorie',
-                input: 'text',
-                inputValue: name,
-                inputAttributes: {
-                    autocomplete: 'off'
-                },
+                html: modalContent,
                 showCancelButton: true,
                 confirmButtonText: 'Modifier',
                 cancelButtonText: 'Annuler',
-                showLoaderOnConfirm: true,
-                preConfirm: (value) => {
-                    if (!value.trim()) {
+                didOpen: () => {
+                    // Focus and select input text when modal opens
+                    const input = document.getElementById('swal-input1');
+                    input.focus();
+                    input.select();
+                },
+                preConfirm: () => {
+                    const value = document.getElementById('swal-input1').value;
+                    if (!value || value.trim() === '') {
                         Swal.showValidationMessage('Le nom de la catégorie ne peut pas être vide');
                         return false;
                     }
                     return value.trim();
                 }
             }).then((result) => {
-                if (result.isConfirmed) {
+                if (result.isConfirmed && result.value) {
                     const formData = new FormData();
                     formData.append('action', 'update');
                     formData.append('id', id);
@@ -1559,6 +1573,7 @@ function getCategoryIcon($categoryId) {
                     .then(data => {
                         if (data.success) {
                             refreshCategories();
+                            updateCategoryDropdowns();
                             showToast('success', 'Catégorie modifiée avec succès');
                         } else {
                             throw new Error(data.message || 'Erreur lors de la modification');
