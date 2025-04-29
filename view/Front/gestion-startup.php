@@ -591,6 +591,39 @@ function getCategoryIcon($categoryId) {
         </div>
     </div>
 
+    <!-- Details Modal -->
+    <div class="modal fade" id="startupDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Détails de la Startup</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img id="modalStartupImage" src="" alt="Startup Image" class="img-fluid rounded mb-3">
+                        </div>
+                        <div class="col-md-6">
+                            <h3 id="modalStartupName"></h3>
+                            <p class="badge bg-info mb-3" id="modalStartupCategory"></p>
+                            <div class="rating-display mb-3">
+                                <div class="stars" id="modalStartupRating"></div>
+                            </div>
+                            <p id="modalStartupDescription"></p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h4>Commentaires</h4>
+                        <div id="modalStartupComments" class="comments-section">
+                            <!-- Comments will be dynamically loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', function(e) {
@@ -693,6 +726,83 @@ function getCategoryIcon($categoryId) {
                     card.classList.add('animate__fadeOut');
                     setTimeout(() => card.style.display = 'none', 500);
                 }
+            });
+        });
+
+        // View more functionality
+        document.querySelectorAll('.view-startup').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const startupId = this.dataset.id;
+                
+                // Fetch startup details
+                fetch(`../../Controller/startupC.php?action=get_startup_details&id=${startupId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const startup = data.startup;
+                            const ratings = data.ratings;
+                            
+                            // Update modal content
+                            document.getElementById('modalStartupName').textContent = startup.name;
+                            document.getElementById('modalStartupCategory').textContent = startup.category_name;
+                            document.getElementById('modalStartupDescription').textContent = startup.description;
+                            
+                            // Handle image
+                            const defaultImage = '/startupConnect-website/uploads/defaults/default-startup.png';
+                            const imageUrl = startup.image_path || defaultImage;
+                            document.getElementById('modalStartupImage').src = imageUrl;
+                            document.getElementById('modalStartupImage').onerror = function() {
+                                this.src = defaultImage;
+                            };
+
+                            // Update rating display
+                            const ratingDisplay = document.getElementById('modalStartupRating');
+                            const averageRating = startup.average_rating ? parseFloat(startup.average_rating) : 0;
+                            let starsHtml = '';
+                            for (let i = 1; i <= 5; i++) {
+                                if (i <= averageRating) {
+                                    starsHtml += '<i class="fas fa-star text-warning"></i>';
+                                } else if (i - 0.5 <= averageRating) {
+                                    starsHtml += '<i class="fas fa-star-half-alt text-warning"></i>';
+                                } else {
+                                    starsHtml += '<i class="far fa-star text-warning"></i>';
+                                }
+                            }
+                            starsHtml += `<span class="ms-2">${averageRating.toFixed(1)}</span>`;
+                            ratingDisplay.innerHTML = starsHtml;
+
+                            // Update comments section
+                            const commentsSection = document.getElementById('modalStartupComments');
+                            if (ratings && ratings.length > 0) {
+                                const commentsHtml = ratings.map(rating => `
+                                    <div class="comment-item border-bottom py-3">
+                                        <div class="rating-display mb-2">
+                                            ${Array(5).fill(0).map((_, i) => 
+                                                i < rating.rating ? 
+                                                '<i class="fas fa-star text-warning"></i>' : 
+                                                '<i class="far fa-star text-warning"></i>'
+                                            ).join('')}
+                                        </div>
+                                        <p class="mb-1">${rating.comment || 'Pas de commentaire'}</p>
+                                        <small class="text-muted">${new Date(rating.created_at).toLocaleDateString()}</small>
+                                    </div>
+                                `).join('');
+                                commentsSection.innerHTML = commentsHtml;
+                            } else {
+                                commentsSection.innerHTML = '<p class="text-muted">Aucun commentaire pour le moment</p>';
+                            }
+
+                            // Show modal
+                            new bootstrap.Modal(document.getElementById('startupDetailsModal')).show();
+                        } else {
+                            alert('Error loading startup details');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to load startup details');
+                    });
             });
         });
     </script>
