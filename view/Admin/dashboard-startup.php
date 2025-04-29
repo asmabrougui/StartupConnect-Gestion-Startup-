@@ -1526,63 +1526,84 @@ function getCategoryIcon($categoryId) {
 
         // Replace the category management functions with simpler versions
         function editCategory(id, name) {
-            const modalContent = `
-                <div class="mb-3">
-                    <input 
-                        type="text" 
-                        id="swal-input1" 
-                        class="form-control"
-                        value="${name}"
-                        style="margin: 1em auto; padding: 10px;"
-                    >
+            // Create Bootstrap modal dynamically
+            const modalHTML = `
+                <div class="modal fade" id="editCategoryModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Modifier la catégorie</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="editCategoryForm">
+                                    <div class="mb-4">
+                                        <label for="edit_category_name" class="form-label">Nom de la catégorie</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="edit_category_name" 
+                                               name="name" 
+                                               value="${name}"
+                                               required>
+                                    </div>
+                                    <div class="text-end">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-2"></i>Enregistrer
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
 
-            Swal.fire({
-                title: 'Modifier la catégorie',
-                html: modalContent,
-                showCancelButton: true,
-                confirmButtonText: 'Modifier',
-                cancelButtonText: 'Annuler',
-                didOpen: () => {
-                    // Focus and select input text when modal opens
-                    const input = document.getElementById('swal-input1');
-                    input.focus();
-                    input.select();
-                },
-                preConfirm: () => {
-                    const value = document.getElementById('swal-input1').value;
-                    if (!value || value.trim() === '') {
-                        Swal.showValidationMessage('Le nom de la catégorie ne peut pas être vide');
-                        return false;
-                    }
-                    return value.trim();
-                }
-            }).then((result) => {
-                if (result.isConfirmed && result.value) {
-                    const formData = new FormData();
-                    formData.append('action', 'update');
-                    formData.append('id', id);
-                    formData.append('name', result.value);
+            // Remove existing modal if any
+            const existingModal = document.getElementById('editCategoryModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
 
-                    fetch('../../Controller/categoryC.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            refreshCategories();
-                            updateCategoryDropdowns();
-                            showToast('success', 'Catégorie modifiée avec succès');
-                        } else {
-                            throw new Error(data.message || 'Erreur lors de la modification');
-                        }
-                    })
-                    .catch(error => {
-                        showToast('error', error.message || 'Erreur lors de la modification');
-                    });
-                }
+            // Add new modal to DOM
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+            // Initialize modal
+            const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+            modal.show();
+
+            // Handle form submission
+            document.getElementById('editCategoryForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                formData.append('action', 'update');
+                formData.append('id', id);
+                formData.append('name', document.getElementById('edit_category_name').value.trim());
+
+                fetch('../../Controller/categoryC.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        refreshCategories();
+                        updateCategoryDropdowns();
+                        modal.hide();
+                        showToast('success', 'Catégorie modifiée avec succès');
+                    } else {
+                        throw new Error(data.message || 'Erreur lors de la modification');
+                    }
+                })
+                .catch(error => {
+                    showToast('error', error.message || 'Erreur lors de la modification');
+                });
+            });
+
+            // Focus on input when modal is shown
+            document.getElementById('editCategoryModal').addEventListener('shown.bs.modal', function() {
+                document.getElementById('edit_category_name').focus();
             });
         }
 
