@@ -539,6 +539,45 @@ unset($_SESSION['error_message']);
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .modal-dialog {
+            max-width: 500px;
+        }
+
+        .modal input.form-control {
+            background-color: #fff;
+            opacity: 1;
+            cursor: text;
+        }
+
+        .modal input.form-control:focus {
+            background-color: #fff;
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+        }
+
+        .btn-group {
+            gap: 0.25rem;
+        }
+
+        .swal2-popup input.swal2-input {
+            box-shadow: none;
+            border: 1px solid #ced4da;
+            padding: 0.375rem 0.75rem;
+            margin: 1em auto;
+        }
+
+        .swal2-popup input.swal2-input:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
     </style>
 </head>
 
@@ -847,26 +886,31 @@ unset($_SESSION['error_message']);
     </div>
 
     <!-- Category Modal -->
-    <div class="modal fade" id="categoryModal" tabindex="-1">
-        <div class="modal-dialog">
+    <div class="modal" id="categoryModal" tabindex="-1" role="dialog" aria-labelledby="categoryModalLabel">
+        <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Gestion des Catégories</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title" id="categoryModalLabel">Gestion des catégories</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="categoriesList" class="list-group mb-3">
-                        <!-- Categories will be loaded here -->
-                    </div>
-                    <hr>
-                    <form id="addCategoryForm" class="mt-3">
+                    <form id="addCategoryForm" class="mb-3">
                         <div class="input-group">
-                            <input type="text" class="form-control" id="newCategoryName" placeholder="Nouvelle catégorie" required>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="newCategoryName" 
+                                   name="categoryName"
+                                   placeholder="Nouvelle catégorie" 
+                                   autocomplete="off"
+                                   required>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i>Ajouter
+                                <i class="fas fa-plus me-1"></i> Ajouter
                             </button>
                         </div>
                     </form>
+                    <div class="list-group" id="categoriesList">
+                        <!-- Categories will be loaded here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -1459,29 +1503,32 @@ unset($_SESSION['error_message']);
             loadSimilarStartups(startupId);
         });
 
-        // Update the editCategory function with a simple implementation
+        // Replace the category management functions with simpler versions
         function editCategory(id, name) {
             Swal.fire({
                 title: 'Modifier la catégorie',
                 input: 'text',
                 inputValue: name,
-                inputPlaceholder: 'Nom de la catégorie',
+                inputAttributes: {
+                    autocomplete: 'off'
+                },
                 showCancelButton: true,
                 confirmButtonText: 'Modifier',
                 cancelButtonText: 'Annuler',
-                showCloseButton: true,
-                focusConfirm: false,
-                inputValidator: (value) => {
-                    if (!value || !value.trim()) {
-                        return 'Le nom de la catégorie ne peut pas être vide';
+                showLoaderOnConfirm: true,
+                preConfirm: (value) => {
+                    if (!value.trim()) {
+                        Swal.showValidationMessage('Le nom de la catégorie ne peut pas être vide');
+                        return false;
                     }
+                    return value.trim();
                 }
             }).then((result) => {
-                if (result.isConfirmed && result.value) {
+                if (result.isConfirmed) {
                     const formData = new FormData();
                     formData.append('action', 'update');
                     formData.append('id', id);
-                    formData.append('name', result.value.trim());
+                    formData.append('name', result.value);
 
                     fetch('../../Controller/categoryC.php', {
                         method: 'POST',
@@ -1490,7 +1537,6 @@ unset($_SESSION['error_message']);
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Refresh both the categories list and all dropdowns
                             refreshCategories();
                             showToast('success', 'Catégorie modifiée avec succès');
                         } else {
@@ -1504,54 +1550,92 @@ unset($_SESSION['error_message']);
             });
         }
 
-        // Add a function to refresh all category dropdowns and lists
+        function deleteCategory(id) {
+            Swal.fire({
+                title: 'Êtes-vous sûr?',
+                text: "Cette action ne peut pas être annulée!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Oui, supprimer!',
+                cancelButtonText: 'Annuler'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const formData = new FormData();
+                    formData.append('action', 'delete');
+                    formData.append('id', id);
+
+                    fetch('../../Controller/categoryC.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            refreshCategories();
+                            showToast('success', 'Catégorie supprimée avec succès');
+                        } else {
+                            throw new Error(data.message || 'Erreur lors de la suppression');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('error', error.message || 'Erreur lors de la suppression');
+                    });
+                }
+            });
+        }
+
         function refreshCategories() {
             fetch('../../Controller/categoryC.php?action=getAll')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.data) {
-                        // Update category dropdowns
-                        const dropdowns = document.querySelectorAll('select[id$="category_id"], #categoryFilter');
-                        dropdowns.forEach(dropdown => {
-                            if (dropdown) {
-                                const currentValue = dropdown.value;
-                                dropdown.innerHTML = `
-                                    <option value="">Toutes les catégories</option>
-                                    ${data.data.map(category => `
-                                        <option value="${category.id}" ${currentValue == category.id ? 'selected' : ''}>
-                                            ${category.name}
-                                        </option>
-                                    `).join('')}
-                                `;
-                            }
-                        });
-
-                        // Update categories list in modal
+                    if (data.success) {
                         const categoriesList = document.getElementById('categoriesList');
-                        if (categoriesList) {
-                            categoriesList.innerHTML = data.data.map(category => `
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>${category.name}</span>
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-warning" onclick="editCategory(${category.id}, '${category.name.replace(/'/g, "\\'")}')">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-danger ms-1" onclick="deleteCategory(${category.id})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('') || '<div class="alert alert-info">Aucune catégorie trouvée</div>';
-                        }
+                        categoriesList.innerHTML = '';
+                        
+                        data.data.forEach(category => {
+                            const escapedName = category.name.replace(/'/g, "\\'");
+                            const item = document.createElement('div');
+                            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                            
+                            const nameSpan = document.createElement('span');
+                            nameSpan.className = 'category-name';
+                            nameSpan.textContent = category.name;
+                            
+                            const btnGroup = document.createElement('div');
+                            btnGroup.className = 'btn-group';
+                            
+                            const editBtn = document.createElement('button');
+                            editBtn.className = 'btn btn-sm btn-primary me-2';
+                            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                            editBtn.onclick = () => editCategory(category.id, escapedName);
+                            
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'btn btn-sm btn-danger';
+                            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                            deleteBtn.onclick = () => deleteCategory(category.id);
+                            
+                            btnGroup.appendChild(editBtn);
+                            btnGroup.appendChild(deleteBtn);
+                            item.appendChild(nameSpan);
+                            item.appendChild(btnGroup);
+                            categoriesList.appendChild(item);
+                        });
                     }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Erreur lors du chargement des catégories');
                 });
         }
 
-        // Update add category form to use refreshCategories
+        // Add category form handler
         document.getElementById('addCategoryForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const nameInput = document.getElementById('newCategoryName');
-            const name = nameInput.value.trim();
+            const input = document.getElementById('newCategoryName');
+            const name = input.value.trim();
+            
             if (!name) return;
 
             const formData = new FormData();
@@ -1565,7 +1649,7 @@ unset($_SESSION['error_message']);
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    nameInput.value = '';
+                    input.value = '';
                     refreshCategories();
                     showToast('success', 'Catégorie ajoutée avec succès');
                 } else {
@@ -1577,9 +1661,28 @@ unset($_SESSION['error_message']);
             });
         });
 
-        // Load categories on page load and modal open
-        document.addEventListener('DOMContentLoaded', refreshCategories);
-        document.getElementById('categoryModal').addEventListener('show.bs.modal', refreshCategories);
+        // Initialize modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryModal = document.getElementById('categoryModal');
+            if (categoryModal) {
+                categoryModal.addEventListener('show.bs.modal', refreshCategories);
+                categoryModal.addEventListener('shown.bs.modal', function() {
+                    document.getElementById('newCategoryName').focus();
+                });
+            }
+        });
+
+        // Toast notification helper
+        function showToast(type, message) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
     </script>
 </body>
 </html>
